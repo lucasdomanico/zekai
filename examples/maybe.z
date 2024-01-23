@@ -1,0 +1,18 @@
+Nothing
+
+Just T
+    value T
+
+Maybe T union(Nothing Just(T))
+
+Maybe(T) void
+show m
+    if m instanceof Nothing
+        console.log('Nothing')
+    else
+        console.log('Just' m.value)
+
+main
+    show(Nothing())
+    show(Just(777))
+    show(Just('z'))

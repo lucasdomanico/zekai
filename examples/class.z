@@ -1,0 +1,22 @@
+Vec3
+    x num # properties!
+    y num
+    z num
+    add fun(Vec3 Vec3)
+    sub fun(Vec3 Vec3)
+
+num num num Vec3
+vec3 x y z
+    @Vec3
+    v Vec3(
+        x, y, z
+        \b\ vec3(v.x + b.x, v.y + b.y, v.z + b.z)
+        \b\ vec3(v.x - b.x, v.y - b.y, v.z - b.z)
+    )
+    v
+
+main
+    console.log(vec3(1 2 3).add(vec3(1 2 3)).sub(vec3(2 0 0)))
+    a vec3(1 2 3)
+    a.x = 20
+    console.log(a.add(vec3(0 0 0)))

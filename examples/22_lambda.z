@@ -1,0 +1,39 @@
+# lambda or anonymous functions work like js/ts
+# but with a different syntax
+
+f
+    v [1 2 3]
+    v.map(\x\ x * 2) # inline lambda expression
+
+# you can also use lambda expressions with a code block/suite as the body
+suite
+    v [1 2 3]
+    v.map(\x
+        n 10
+        n *= 20
+        if false # you can use statements like expected
+            ret 0
+        for
+            break
+        x * n
+    )
+
+# to use an async lambda expression, just use the async keyword before the arguments
+wait
+    v [1 2 3]
+    v.forEach(async \x
+        console.log('one')
+        await timeout()
+        console.log('two')
+    )
+
+Promise(void)
+timeout
+    Promise(\resolve
+        setTimeout(resolve 1000)
+    )
+
+main
+    console.log(f())
+    console.log(suite())
+    wait()

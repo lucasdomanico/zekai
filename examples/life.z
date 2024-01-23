@@ -1,0 +1,88 @@
+'std'
+    range
+
+width 200
+height 200
+
+Grid array(array(bool))
+
+Grid
+init_grid
+    range(height).map(\
+        range(width).map(\
+            Math.random() > 0.5
+        )
+    )
+
+Grid int int bool
+at grid y x
+    if y < 0 || x < 0 ret false
+    if y >= height || x >= width ret false
+    grid[y][x]
+
+Grid Grid
+step grid
+    grid.map(\row y
+        row.map(\alive x
+            atari 0
+            if at(grid y - 1 x - 1) atari += 1
+            if at(grid y - 1 x + 0) atari += 1
+            if at(grid y - 1 x + 1) atari += 1
+            if at(grid y + 0 x - 1) atari += 1
+            if at(grid y + 0 x + 1) atari += 1
+            if at(grid y + 1 x - 1) atari += 1
+            if at(grid y + 1 x + 0) atari += 1
+            if at(grid y + 1 x + 1) atari += 1
+            if alive && atari < 2
+                ret false
+            if alive && (atari == 2 || atari == 3)
+                ret true
+            if alive && atari > 3
+                ret false
+            if !alive && atari == 3
+                ret true
+            alive
+        )
+    )
+
+Canvas HTMLCanvasElement
+
+Canvas
+canvas
+    canvas document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    canvas.style.position = 'absolute'
+    canvas.style.top = '0'
+    canvas.style.right = '1.5%'
+    canvas.style.border = '2px solid black'
+    canvas.style.width = '40%'
+    canvas.style.imageRendering = 'pixelated'
+    document.body.append(canvas)
+    canvas
+
+Canvas void
+animate canvas
+    tick(canvas)
+    setTimeout(\\ animate(canvas) 1000 / 60)
+
+Canvas int int bool void
+pixel canvas x y alive
+    c canvas.getContext('2d')
+    if c instanceof CanvasRenderingContext2D
+        c.fillStyle = iif alive 'yellow' 'black'
+        c.fillRect(x y 1 1)
+
+grid init_grid()
+
+Canvas void
+tick canvas
+    grid = step(grid)
+    grid.forEach(\row y
+        row.forEach(\alive x
+            pixel(canvas x y alive)
+        )
+    )
+
+main
+    animate(canvas())

@@ -1,0 +1,74 @@
+
+# operators work just like in js/ts, including their precedence
+
+bool bool bool
+or a b\ a || b
+
+bool bool bool
+and a b\ a && b
+
+num num num
+bit_or a b\ a | b
+
+num num num
+bit_xor a b\ a ^ b
+
+num num num
+bit_and a b\ a & b
+
+# equality operators are always strict
+num num bool
+eq a b\ a == b # transpiles to '===' operator
+num num bool
+neq a b\ a != b # transpiles to '!==' operator
+
+# relational
+num num bool
+gte a b\ a >= b
+num num bool
+gt a b\ a > b
+num num bool
+lte a b\ a <= b
+num num bool
+lt a b\ a < b
+
+# same for bitwise shifts >>> >> <<
+# same for additive and multiplicative operators: + - * / %
+
+# unary
+bool bool
+not x\ !x
+num num
+bit_not x\ ~x
+num num
+neg x\ -x
+
+# there are no prefix increment or decrement ++n --n
+# neither postfix increment or decrement n++ y++
+
+# the next struct is used to show member access operator below
+Point
+    x num
+    y num
+
+main
+    # only additive and multiplicative assignments
+    n 0
+    n = 1
+    n += 2
+    n -= 3
+    n *= 4
+    n /= 5
+    n %= 6
+    # function calls
+    console.log(and(true false))
+    # computed member access
+    v [1 2 3]
+    console.log(v[1])
+    v[1] = 7
+    console.log(v)
+    # member access
+    p Point(1 2)
+    console.log(p.x)
+    p.y = 9
+    console.log(p)

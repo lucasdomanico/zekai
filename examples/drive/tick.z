@@ -1,0 +1,155 @@
+'./path.z.js'
+    Path
+    create_path path
+
+three        await import('./three/three.module.js')
+line2        (await import('./three/jsm/lines/Line2.js')).Line2
+lineMaterial (await import('./three/jsm/lines/LineMaterial.js')).LineMaterial
+lineGeometry (await import('./three/jsm/lines/LineGeometry.js')).LineGeometry
+
+RecordValue union(str num bool HTMLCanvasElement)
+
+array(tuple(str RecordValue)) Record(str RecordValue)
+record v
+    Object.fromEntries(v)
+
+Mesh   any
+Camera any
+Curve  any
+
+line_mesh_width 0.02
+
+Float32Array num num Mesh
+vertices_to_mesh vertices color lineWidth
+    geometry new lineGeometry()
+    geometry.setPositions(vertices)
+    matLine new lineMaterial(record([
+        ['color'      color]
+        ['linewidth'  lineWidth]
+        ['worldUnits' true]
+    ]))
+    line new line2(geometry matLine)
+    line.computeLineDistances()
+    line.scale.set(1 1 1)
+    line
+
+num num num num num num num Mesh
+line_to_mesh x y z x2 y2 z2 color
+    vertices Float32Array([x y z x2 y2 z2])
+    vertices_to_mesh(vertices color line_mesh_width)
+
+num num num num num num num tuple(num num num)
+translate_axis x y z axis_x axis_y axis_z distance
+    o new three.Object3D()
+    o.position.x = x
+    o.position.y = y
+    o.position.z = z
+    o.updateMatrix()
+    axis new three.Vector3(axis_x axis_y axis_z)
+    o.translateOnAxis(axis distance)
+    o.updateMatrix()
+    [o.position.x o.position.y o.position.z]
+
+Camera num Path Curve void
+camera_displacement camera camera_displacement path curve
+    camera_displacement *= 10
+    n Math.floor(camera_displacement)
+    t camera_displacement % 1
+    line path.lines[n]
+    next path.lines[n + 1]
+    if next == undefined
+        location.reload()
+        ret
+    point curve.getPoint(camera_displacement / path.lines.length)
+    tan   curve.getTangent(camera_displacement / path.lines.length)
+    # warning after new there should be access
+    normal new three.Vector3(line.nx line.ny line.nz).lerp(new three.Vector3(next.nx next.ny next.nz) t)
+    # q
+    q translate_axis(point.x point.y point.z normal.x normal.y normal.z 1)
+    camera.position.x = q[0]
+    camera.position.y = q[1]
+    camera.position.z = q[2]
+    # lookat
+    camera.up = new three.Vector3(normal.x normal.y normal.z)
+    camera.lookAt(point.x + tan.x * 2 point.y + tan.y * 2 point.z + tan.z * 2)
+    # p
+    p translate_axis(camera.position.x camera.position.y camera.position.z tan.x tan.y tan.z -4)
+    camera.position.x = p[0]
+    camera.position.y = p[1]
+    camera.position.z = p[2]
+    w translate_axis(camera.position.x camera.position.y camera.position.z normal.x normal.y normal.z 2)
+    camera.position.x = w[0]
+    camera.position.y = w[1]
+    camera.position.z = w[2]
+
+colors_sides  0x0000FF
+colors_center 0x0000FF
+colors_middle 0xFF0000
+colors_backg  0xFFCC00
+
+HTMLCanvasElement num num void
+tick canvas resolution_width resolution_height
+    renderer new three.WebGLRenderer(record([['canvas' canvas] ['antialias' true] ['alpha' true]]))
+    renderer.setPixelRatio(window.devicePixelRatio)
+    renderer.setClearColor(0x000000 0)
+    renderer.setSize(resolution_width resolution_height)
+    renderer.setViewport(0 0 resolution_width resolution_height)
+    # renderer.premultipliedAlpha = false
+    scene new three.Scene()
+    camera new three.PerspectiveCamera(40 resolution_width / resolution_height 0.01 10000)
+    camera.position.set(0 0 5)
+    floor new three.TextureLoader().load('assets/floor.png')
+    path create_path(Math.random())
+    path.lines.forEach(\line i
+        mesh line_to_mesh(line.x line.y line.z line.x2 line.y2 line.z2 colors_center)
+        scene.add(mesh)
+        # nx line.cx + line.nx
+        # ny line.cy + line.ny
+        # nz line.cz + line.nz
+        # n = line_to_mesh(line.cx, line.cy, line.cz, nx, ny, nz, 0xFFFF00)
+        # scene.add(n)
+        # fx line.cx + line.fx
+        # fy line.cy + line.fy
+        # fz line.cz + line.fz
+        # f line_to_mesh(line.cx line.cy line.cz fx fy fz colors_middle)
+        # if i != path.lines.length - 1 scene.add(f)
+        # tx line.cx + line.tx
+        # ty line.cy + line.ty
+        # tz line.cz + line.tz
+        # t line_to_mesh(line.cx, line.cy, line.cz, tx, ty, tz, 0x00FF00)
+        # scene.add(t)
+        if i != 0
+            next path.lines[i - 1]
+            l line_to_mesh(line.x  line.y  line.z  next.x  next.y  next.z colors_sides)
+            scene.add(l)
+            r line_to_mesh(line.x2 line.y2 line.z2 next.x2 next.y2 next.z2 colors_sides)
+            scene.add(r)
+    )
+    loader new three.CubeTextureLoader()
+    loader.setPath('assets/skybox/')
+    cubetex loader.load([
+        'px.png' 'nx.png'
+        'py.png' 'ny.png'
+        'pz.png' 'nz.png'
+    ])
+    # scene.background = cubetex
+    scene.background = new three.Color(colors_backg)
+    # reload
+    canvas.onclick = \\
+        location.reload()
+    # etc...
+    curve new three.CatmullRomCurve3(path.lines.map(\line
+        new three.Vector3(line.cx line.cy line.cz)
+    ))
+    camera_displace 0
+    time Date.now()
+    renderer.setAnimationLoop(\\
+        delta (Date.now() - time) / 1000
+        time = Date.now()
+        camera_displace += delta
+        camera_displacement(camera camera_displace path curve)
+        renderer.render(scene camera)
+    )
+
+main
+    console.log(line2)

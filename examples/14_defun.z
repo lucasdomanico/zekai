@@ -1,0 +1,50 @@
+
+# to create a function, first declare the types.
+# first the arguments type, and then the return type
+# then the name (starting in lower case), arguments ids and body
+
+number number number
+add a b
+    a + b # the last statement returns automatically
+
+# you can also define the body inline
+number number number
+mul a b\ a * b
+
+# a function without arguments that doesn't return anyhing
+void
+hi
+    console.log('hi')
+
+# in such case, 'void' is optional
+bye
+    console.log('bye')
+
+# locals work as expected
+number number
+test n
+    q n + 1
+    q += 10
+    q
+
+# to create an async function, just place the async keyword after its name
+wait async
+    now Date.now()
+    await timeout()
+    console.log(Date.now() - now)
+
+Promise(void)
+timeout
+    Promise(\resolve # lambda expression, exaplined later
+        setTimeout(resolve 1000)
+    )
+
+# optional arguments are forbidden
+
+main
+    console.log(add(1 2))
+    console.log(mul(3 4))
+    hi()
+    bye()
+    console.log(test(8))
+    wait()

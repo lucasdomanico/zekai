@@ -1,0 +1,21 @@
+
+# to import a javascript module use await import
+# it will be of type any
+lib_js await import('./23_import_lib_js.js')
+
+# to import a typescript module, use an string
+'./23_import_lib_ts.js'
+    sub # list the imports, they preserve the types
+    my_mul mul # you can rename an import, first the desired id, then the import value
+
+# to import a zekai moodule, use the generated .z.js file
+# all zekai modules need a main function, but you don't need to import it
+# if its a lib, just show some help on how to use it
+'./23_import_lib_zekai.z.js'
+    div
+
+main
+    console.log(lib_js.add(1 2))
+    console.log(sub(1 2))
+    console.log(my_mul(2 3))
+    console.log(div(1 2))

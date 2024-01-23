@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="codemirror5/lib/codemirror.js"></script>
+<script src="codemirror5/addon/mode/simple.js"></script>
+<script src="codemirror5/addon/edit/matchbrackets.js"></script>
+<script src="codemirror5/addon/edit/closebrackets.js"></script>
+<script src="codemirror5/addon/comment/comment.js"></script>
+<script src="codemirror5/addon/selection/active-line.js"></script>
+<script src="codemirror5/addon/search/match-highlighter.js"></script>
+<link rel="stylesheet" href="codemirror5/lib/codemirror.css">
+<link rel="stylesheet" href="index.css">
+</head>
+
+<body style="margin:0; padding:0">
+
+<script>
+
+// let keywords = 'async|await|import|ret|if|for|else|iif|instanceof|new|break|continue'
+
+CodeMirror.defineSimpleMode('zekai', {
+    start: [
+
+        { token: "banned",              regex: /^[ ]+(let) /, sol:true },
+
+
+        // list all operators
+        { token: ["normal", "keyword"], regex: /^([ ]+[a-z_][A-Za-z_\d]*) (\=|\+\=|\+|\-|\*|\/|\%)/, sol:true },
+        // ------------------
+
+
+        { token: "keyword",             regex: /^[ ]+(async|await|import|ret|if|for|else|iif|new) /, sol:true },
+        { token: ["normal", "let"],     regex: /^([ ]+)([a-z_][A-Za-z_\d]*) /, sol:true },
+
+        
+        { token: "string",  regex: /'(?:[^\\]|\\.)*?(?:'|$)/ },
+        { token: "number",  regex: /0x[a-f\d]+|[-+]?(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i, },
+        { token: "keyword", regex: /(?:async|await|import|ret|if|for|else|iif|instanceof|new|break|continue)\b/ },
+
+        { token: "keyword", regex: /\&\&/ },
+        { token: "keyword", regex: /\|\|/ },
+        { token: "bitwise", regex: /\|/ },
+        { token: "bitwise", regex: /\^/ },
+        { token: "bitwise", regex: /\&/ },
+        { token: "bitwise", regex: /\<\</ },
+        { token: "bitwise", regex: /\>\>\>/ },
+        { token: "bitwise", regex: /\>\>/ },
+        { token: "bitwise", regex: /\~/ },
+
+        { token: "banned", regex: /(\!\=\=)|(\=\=\=)/ },
+
+        { token: "keyword", regex: /[-+\/*=<>!%\[\]\{\}\:]+/ },
+        { token: "par",     regex: /\@/ },
+        // { token: "keyword", regex: /\||\[|\]/ },
+        { token: "keyword", regex: /\\/ },
+        { token: "par",     regex: /(?:true|false)\b/ },
+        { token: "std",     regex: /(?:range|clone)\b/ },
+        { token: "par",     regex: /\(|\)/ },
+        { token: "comment", regex: /\#.*/ },
+        { token: "type",    regex: /^[A-Z][A-Za-z$\d]+/ },
+        { token: "type",    regex: /(?:bool|num|number|int|void|fun|str|string|array|union|extends|map|tuple)\b/ },
+        { token: "generic", regex: /^[A-Z]/ },
+        { token: "evil",    regex: /(?:null|undefined|any|typeof|let)\b/ },
+        { token: "banned",  regex: /[\;\?]/ },
+        { token: "comma",   regex: /[\,]/ },
+        { token: "normal",  regex: /^[a-z$][\w$]*/ },
+        { token: "dot",     regex: /\./ },
+        { token: "tab",     regex: /^[ ]+$/, sol:true },
+        { token: "excess",  regex: /^[ ]+$/ },
+    ],
+    meta: {
+        dontIndentStates: ["comment"],
+        lineComment: "#"
+    }
+})
+
+let codeMirror = CodeMirror(document.body, {
+    value: '',
+    mode:  "zekai",
+    lineNumbers: true,
+    indentUnit: 4,
+    indentWithTabs: false,
+    smartIndent: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    styleActiveLine: true,
+
+    // highlightSelectionMatches: {
+    //     showToken: true
+    // },
+
+    highlightSelectionMatches: {
+        minChars: 2,
+        delay: 100,
+        // wordsOnly: true,
+        // annotateScrollbar: false,
+        // showToken: false,
+        // trim: true
+    },
+
+    viewportMargin: 10000, // otherwise browser's find (and replace?) doesn't works
+
+    extraKeys: {
+        Tab: (cm) => {
+            if(cm.getMode().name === 'null') {
+                cm.execCommand('insertTab')
+            }
+            else {
+                if(cm.somethingSelected()) {
+                    cm.execCommand('indentMore')
+                }
+                else {
+                    cm.execCommand('insertSoftTab')
+                }
+            }
+        },
+        Backspace: (cm) => {
+            if(!cm.somethingSelected()) {
+                let cursorsPos = cm.listSelections().map((selection) => selection.anchor)
+                let indentUnit = cm.options.indentUnit
+                let shouldDelChar = false
+                for(let cursorIndex in cursorsPos) {
+                    let cursorPos = cursorsPos[cursorIndex]
+                    let indentation = cm.getStateAfter(cursorPos.line).indented
+                    if(!(indentation !== 0 &&
+                        cursorPos.ch <= indentation &&
+                        cursorPos.ch % indentUnit === 0)) {
+                        shouldDelChar = true;
+                    }
+                }
+                if(!shouldDelChar) {
+                    cm.execCommand('indentLess')
+                }
+                else {
+                    cm.execCommand('delCharBefore')
+                }
+            }
+            else {
+                cm.execCommand('delCharBefore')
+            }
+        },
+        'Shift-Tab': (cm) => cm.execCommand('indentLess'),
+    }
+})
+
+document.title = window.location.href.split('/').at(-1)
+
+if(codeMirror.onsave !== undefined) {
+    alert('error')
+}
+codeMirror.onsave = () => {
+    alert(codeMirror.getValue())
+}
+
+document.onkeydown = function(e) {
+    if(e.ctrlKey && e.which === 83) {
+        e.preventDefault()
+        codeMirror.onsave()
+        return false
+    }
+    if(e.ctrlKey && e.which === 191) {
+        e.preventDefault()
+        codeMirror.toggleComment({ indent:true })
+        return false
+    }
+}
+
+</script>
+
+<script>
+document.body.style.background = '#222'
+document.body.style.visibility = 'hidden'
+
+let unload_handler = (e) => {
+    e.preventDefault()
+}
+
+let title = window.location.href.split('/').at(-1)
+
+let codemirror_value = `
+main
+    console.log('hi zekai!')
+`
+let codemirror_fetch = ''
+
+//%SERVER_CODE%//
+
+codeMirror.setValue(codemirror_value)
+codeMirror.clearHistory()
+codeMirror.on('change', () => {
+    document.title  = '● ' + title
+    window.addEventListener('beforeunload', unload_handler)
+})
+codeMirror.onsave = () => {
+    document.title = title
+    window.removeEventListener('beforeunload', unload_handler)
+    sessionStorage.setItem('history', JSON.stringify(codeMirror.getDoc().getHistory()))
+    let code = codeMirror.getValue()
+    let arraybuf = new TextEncoder().encode(code)
+    if(codemirror_fetch === '') {
+        return
+    }
+    fetch(codemirror_fetch, { method:'post', body:arraybuf })
+}
+
+let history = sessionStorage.getItem('history')
+if(history) {
+    codeMirror.getDoc().setHistory(JSON.parse(history))
+}
+
+document.body.style.visibility = ''
+codeMirror.focus()
+
+let cursor = sessionStorage.getItem('cursor')
+if(cursor) {
+    codeMirror.getDoc().setCursor(JSON.parse(cursor))
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('cursor', JSON.stringify(codeMirror.getDoc().getCursor()))
+}, 50)
+
+let scrollpos = sessionStorage.getItem('scrollpos')
+if(scrollpos) {
+    codeMirror.getScrollerElement().scrollTo(0, scrollpos)
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('scrollpos', codeMirror.getScrollerElement().scrollTop)
+}, 50)
+
+</script>
+
+<script type="module">
+//%SERVER_MAIN%//
+</script>
+
+</body>
+</html>

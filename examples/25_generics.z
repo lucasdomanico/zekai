@@ -1,0 +1,27 @@
+# zekai supports generics, they can be used in structs, aliases and defuns
+# type parameter is written with a single upper case character
+
+None
+
+Node T
+    value T
+    links array(Node(T))
+
+Tree T Node(T)
+
+array(T) fun(T S) array(S)
+my_map v f
+    r array(S)
+    for i 0, i < v.length, i += 1
+        r.push(f(v[i]))
+    r
+
+Tree(T) void
+show t
+    console.log(t)
+
+main
+    root Node(1 [])
+    root.links.push(Node(2 []))
+    show(root)
+    console.log(my_map([1 2 3] \x\ x * 2))

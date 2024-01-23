@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>zekai!</title>
+<link rel="icon" href="pulsar.png" />
+<style>
+    html, 
+    body {
+        height: 100%;
+    }
+    body {
+        margin:0; padding:0;
+    }
+
+    iframe {
+        height: 100%;
+        width: 100%;
+        border: 2px solid #ccc;
+        margin: 0 auto;
+        display: block
+    }
+
+</style>
+</head>
+
+<body>
+
+    <iframe id="frame" scrolling="no" style="border:0"></iframe>
+    
+    <script>
+        let url = new URL(window.location)
+        let example = url.searchParams.get('example')
+        frame.src = 'examples/' + example + '.htm'
+        document.title = example
+    </script>
+
+</body>
+</html>

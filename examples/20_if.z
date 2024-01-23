@@ -1,0 +1,46 @@
+
+# as you may noticed, indentation is important
+Point
+    x num
+    y num
+
+f
+    1
+    2
+    3
+
+# the same goes for if and for statements
+bool void
+test b
+    if b
+        n 2
+        n *= 20
+        console.log(n)
+    else
+        if Math.random() < 0.5 # no else
+            console.log('yay')
+
+# these are code blocks of identation, also called suites
+# besides that, they work like all imperative languages
+# including the return statment (also called ret in zekai)
+
+num num
+fib n
+    if n == 0 || n == 1
+        return n
+    fib(n - 1) + fib(n - 2)
+
+# if statements can be inline
+num void
+inline n
+    if (n < 0.5) ret 'yay' # parentheses are optional
+    if n == 0.5 ret 'nay'
+    'whatever'
+
+main
+    test(true)
+    test(false)
+    console.log(fib(7))
+    console.log(inline(0))
+    console.log(inline(0.5))
+    console.log(inline(10))

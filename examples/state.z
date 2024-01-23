@@ -1,0 +1,22 @@
+
+None
+
+State
+    stuff num
+
+@union(None State)
+state None()
+
+fun(State void) void
+use_state f
+    if state instanceof State
+        f(state)
+
+main
+    use_state(\state
+        console.log(state.stuff)
+    )
+    state = State(777)
+    use_state(\state
+        console.log(state.stuff)
+    )

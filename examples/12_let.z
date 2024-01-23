@@ -1,0 +1,12 @@
+name 'bob' # this is a global
+
+main
+    # let are very much like globals, the difference is their local scope
+    n := 1 # the := is also optional
+    luck 7
+    # you can change the value of a local using the = operator
+    n = 9
+    # you can also update globals, but it's considered a bad practice
+    name = 'alice'
+    console.log(n)
+    console.log(name)

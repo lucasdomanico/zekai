@@ -1,0 +1,35 @@
+# if you want to extend a type, use the extends type and extends keyword
+# this way you can emulate inheritance
+# check carefully the generated .z.ts file, inspect their types
+
+Animal
+    name str
+
+Bear
+    roar num
+
+AnimalBear extends(Animal Bear)
+
+Animal void
+animal a
+    console.log(a instanceof Animal)
+    console.log(a.name)
+
+Bear void
+bear b
+    console.log(b instanceof Bear)
+    console.log(b.roar)
+
+AnimalBear void
+animal_bear b
+    console.log(b instanceof Animal)
+    console.log(b instanceof Bear)
+    console.log(b.name)
+    console.log(b.roar)
+
+main
+    x extends(Animal('foo') Bear(999))
+    console.log(x)
+    animal(x)
+    bear(x)
+    animal_bear(x)

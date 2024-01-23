@@ -1,0 +1,25 @@
+# the standard library comes with two functions, to import them:
+'std'
+    range
+    clone
+
+# range works as python range, it's the only zekai function that can omit arguments
+show
+    console.log(range(10))
+    console.log(range(5 10))
+    console.log(range(0 10 2))
+
+# the clone function uses javascript structuredClone function internally
+# the difference is that it preserve the types
+Empty
+
+cloning
+    e Empty()
+    s structuredClone(e)
+    c clone(e)
+    console.log(s instanceof Empty)
+    console.log(c instanceof Empty)
+
+main
+    show()
+    cloning()

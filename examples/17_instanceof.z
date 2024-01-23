@@ -1,0 +1,23 @@
+
+# the instanceof operator works as a type guard in typescript
+
+Str
+    s str
+
+Num
+    n num
+
+union(Str Num) void
+f x
+    if x instanceof Str
+        console.log('Str' x.s)
+    if x instanceof Num
+        console.log('Num' x.n)
+
+main
+    f(Str('hello'))
+    f(Num(777))
+
+# to read more about type guards:
+# https://www.typescriptlang.org/docs/handbook/advanced-types.html
+# https://www.typescriptlang.org/docs/handbook/2/narrowing.html

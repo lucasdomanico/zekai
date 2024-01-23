@@ -1,0 +1,194 @@
+'./rand.z.js'
+    random random_seed
+
+three await import('./three/three.module.js')
+
+line_width 0.75
+line_z_space 1
+path_segments_length 50
+
+Line
+    x num # local 'left' vertex
+    y num
+    z num
+    x2 num # local 'right' vertex
+    y2 num
+    z2 num
+    cx num # center vertex
+    cy num
+    cz num
+    nx num # normal unit vector
+    ny num
+    nz num
+    fx num # forward unit vector
+    fy num
+    fz num
+    tx num # tangent unit vector
+    ty num
+    tz num
+
+Path
+    lines array(Line)
+
+num num num
+sum_component x x2
+    ret (x + x2) / 2
+
+num num num num num num tuple(num num num)
+compute_center x y z x2 y2 z2
+    cx sum_component(x x2)
+    cy sum_component(y y2)
+    cz sum_component(z z2)
+    [cx cy cz]
+
+num num num num num num num num num num tuple(num num num)
+rotate_axis x y z px py pz ax ay az angle
+    pos   new three.Vector3(x y z)
+    pivot new three.Vector3(px py pz)
+    axis  new three.Vector3(ax ay az)
+    pos.sub(pivot)
+    pos.applyAxisAngle(axis angle)
+    pos.add(pivot)
+    [pos.x pos.y pos.z]
+
+Line num num num num void
+rotate_line_angle line axis_x axis_y axis_z angle
+    az  rotate_axis(line.x  line.y  line.z  line.cx line.cy line.cz axis_x axis_y axis_z angle)
+    az2 rotate_axis(line.x2 line.y2 line.z2 line.cx line.cy line.cz axis_x axis_y axis_z angle)
+    azn rotate_axis(line.nx line.ny line.nz 0 0 0 axis_x axis_y axis_z angle)
+    azf rotate_axis(line.fx line.fy line.fz 0 0 0 axis_x axis_y axis_z angle)
+    azt rotate_axis(line.tx line.ty line.tz 0 0 0 axis_x axis_y axis_z angle)
+    line.x = az[0]
+    line.y = az[1]
+    line.z = az[2]
+    line.x2 = az2[0]
+    line.y2 = az2[1]
+    line.z2 = az2[2]
+    line.nx = azn[0]
+    line.ny = azn[1]
+    line.nz = azn[2]
+    line.fx = azf[0]
+    line.fy = azf[1]
+    line.fz = azf[2]
+    line.tx = azt[0]
+    line.ty = azt[1]
+    line.tz = azt[2]
+
+Line num num num void
+rotate_line line angle_x angle_y angle_z
+    rotate_line_angle(line line.tx line.ty line.tz angle_x)
+    rotate_line_angle(line line.nx line.ny line.nz angle_y)
+    rotate_line_angle(line line.fx line.fy line.fz angle_z)
+
+num num num num num num num tuple(num num num)
+translate_axis x y z axis_x axis_y axis_z distance
+    o new three.Object3D()
+    o.position.x = x
+    o.position.y = y
+    o.position.z = z
+    o.updateMatrix()
+    axis new three.Vector3(axis_x axis_y axis_z)
+    o.translateOnAxis(axis distance)
+    o.updateMatrix()
+    [o.position.x o.position.y o.position.z]
+
+Line Line void
+forward_fix_line last line
+    v translate_axis(last.cx last.cy last.cz last.fx last.fy last.fz line_z_space)
+    x v[0]
+    y v[1]
+    z v[2]
+    dx line.cx - x
+    dy line.cy - y
+    dz line.cz - z
+    line.x += -dx
+    line.y += -dy
+    line.z += -dz
+    line.x2 += -dx
+    line.y2 += -dy
+    line.z2 += -dz
+    line.cx += -dx
+    line.cy += -dy
+    line.cz += -dz
+
+array(Line) void
+forward_fix lines
+    for i 1 i < lines.length i += 1
+        last lines[i - 1]
+        line lines[i]
+        forward_fix_line(last line)
+
+fun(num num) fun(num num)
+nested f\ f
+
+num num num num bool tuple(array(Line) num num num)
+create_segment seed adx ady adz start
+    rands random(seed 4)
+    angle_xf nested(\i\ i * rands[0] * 0.4 * (iif random(rands[0] 1)[0] > 0.5 1 -1))
+    angle_yf nested(\i\ i * rands[1] * 0.4 * (iif random(rands[1] 1)[0] > 0.5 1 -1))
+    angle_zf nested(\i\ i * rands[2] * 0.4 * (iif random(rands[2] 1)[0] > 0.5 1 -1))
+    lines_length Math.floor((rands[3]) * 12 % 12) + 4
+    if start
+        angle_xf = \\ 0
+        angle_yf = \\ 0
+        angle_zf = \\ 0
+        lines_length = 12
+    lines array(Line)
+    angle_x 0
+    angle_y 0
+    angle_z 0
+    for i 0 i < lines_length i += 1
+        x -line_width
+        y 0
+        z 0
+        x2 line_width
+        y2 0
+        z2 0
+        cv compute_center(x y z x2 y2 z2)
+        cx cv[0]
+        cy cv[1]
+        cz cv[2]
+        nx 0
+        ny 1
+        nz 0
+        fx 0
+        fy 0
+        fz -1
+        tx 1
+        ty 0
+        tz 0
+        angle_x = adx + angle_xf(i)
+        angle_y = ady + angle_yf(i)
+        angle_z = adz + angle_zf(i)
+        line Line(
+            x,  y,  z
+            x2, y2, z2
+            cx, cy, cz
+            nx, ny, nz
+            fx, fy, fz
+            tx, ty, tz
+        )
+        rotate_line(line angle_x angle_y angle_z)
+        lines.push(line)
+    [lines angle_x angle_y angle_z]
+
+num Path
+create_path seed
+    angle_x 0
+    angle_y 0
+    angle_z 0
+    lines array(Line)
+    rands random(seed path_segments_length)
+    for i 0 i < path_segments_length i += 1
+        r create_segment(rands[i] angle_x angle_y angle_z i == 0 || i == path_segments_length - 1)
+        angle_x = r[1]
+        angle_y = r[2]
+        angle_z = r[3]
+        lines = lines.concat(r[0])
+    forward_fix(lines)
+    Path(lines)
+
+path create_path
+
+main
+    console.log(random(1 5))

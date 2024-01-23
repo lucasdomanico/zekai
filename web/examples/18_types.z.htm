@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<script src="18_types.z_files/codemirror.js"></script>
+<script src="18_types.z_files/simple.js"></script>
+<script src="18_types.z_files/matchbrackets.js"></script>
+<script src="18_types.z_files/closebrackets.js"></script>
+<script src="18_types.z_files/comment.js"></script>
+<script src="18_types.z_files/active-line.js"></script>
+<script src="18_types.z_files/match-highlighter.js"></script>
+<link rel="stylesheet" href="18_types.z_files/codemirror.css">
+<link rel="stylesheet" href="18_types.z_files/index.css">
+<title>18_types.z</title></head>
+
+<body style="margin: 0px; padding: 0px; background: rgb(34, 34, 34);">
+
+<script>
+
+// let keywords = 'async|await|import|ret|if|for|else|iif|instanceof|new|break|continue'
+
+CodeMirror.defineSimpleMode('zekai', {
+    start: [
+
+        { token: "banned",              regex: /^[ ]+(let) /, sol:true },
+
+
+        // list all operators
+        { token: ["normal", "keyword"], regex: /^([ ]+[a-z_][A-Za-z_\d]*) (\=|\+\=|\+|\-|\*|\/|\%)/, sol:true },
+        // ------------------
+
+
+        { token: "keyword",             regex: /^[ ]+(async|await|import|ret|if|for|else|iif|new) /, sol:true },
+        { token: ["normal", "let"],     regex: /^([ ]+)([a-z_][A-Za-z_\d]*) /, sol:true },
+
+        
+        { token: "string",  regex: /'(?:[^\\]|\\.)*?(?:'|$)/ },
+        { token: "number",  regex: /0x[a-f\d]+|[-+]?(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i, },
+        { token: "keyword", regex: /(?:async|await|import|ret|if|for|else|iif|instanceof|new|break|continue)\b/ },
+
+        { token: "keyword", regex: /\&\&/ },
+        { token: "keyword", regex: /\|\|/ },
+        { token: "bitwise", regex: /\|/ },
+        { token: "bitwise", regex: /\^/ },
+        { token: "bitwise", regex: /\&/ },
+        { token: "bitwise", regex: /\<\</ },
+        { token: "bitwise", regex: /\>\>\>/ },
+        { token: "bitwise", regex: /\>\>/ },
+        { token: "bitwise", regex: /\~/ },
+
+        { token: "banned", regex: /(\!\=\=)|(\=\=\=)/ },
+
+        { token: "keyword", regex: /[-+\/*=<>!%\[\]\{\}\:]+/ },
+        { token: "par",     regex: /\@/ },
+        // { token: "keyword", regex: /\||\[|\]/ },
+        { token: "keyword", regex: /\\/ },
+        { token: "par",     regex: /(?:true|false)\b/ },
+        { token: "std",     regex: /(?:range|clone)\b/ },
+        { token: "par",     regex: /\(|\)/ },
+        { token: "comment", regex: /\#.*/ },
+        { token: "type",    regex: /^[A-Z][A-Za-z$\d]+/ },
+        { token: "type",    regex: /(?:bool|num|number|int|void|fun|str|string|array|union|extends|map|tuple)\b/ },
+        { token: "generic", regex: /^[A-Z]/ },
+        { token: "evil",    regex: /(?:null|undefined|any|typeof|let)\b/ },
+        { token: "banned",  regex: /[\;\?]/ },
+        { token: "comma",   regex: /[\,]/ },
+        { token: "normal",  regex: /^[a-z$][\w$]*/ },
+        { token: "dot",     regex: /\./ },
+        { token: "tab",     regex: /^[ ]+$/, sol:true },
+        { token: "excess",  regex: /^[ ]+$/ },
+    ],
+    meta: {
+        dontIndentStates: ["comment"],
+        lineComment: "#"
+    }
+})
+
+let codeMirror = CodeMirror(document.body, {
+    value: '',
+    mode:  "zekai",
+    lineNumbers: true,
+    indentUnit: 4,
+    indentWithTabs: false,
+    smartIndent: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    styleActiveLine: true,
+
+    // highlightSelectionMatches: {
+    //     showToken: true
+    // },
+
+    highlightSelectionMatches: {
+        minChars: 2,
+        delay: 100,
+        // wordsOnly: true,
+        // annotateScrollbar: false,
+        // showToken: false,
+        // trim: true
+    },
+
+    viewportMargin: 10000, // otherwise browser's find (and replace?) doesn't works
+
+    extraKeys: {
+        Tab: (cm) => {
+            if(cm.getMode().name === 'null') {
+                cm.execCommand('insertTab')
+            }
+            else {
+                if(cm.somethingSelected()) {
+                    cm.execCommand('indentMore')
+                }
+                else {
+                    cm.execCommand('insertSoftTab')
+                }
+            }
+        },
+        Backspace: (cm) => {
+            if(!cm.somethingSelected()) {
+                let cursorsPos = cm.listSelections().map((selection) => selection.anchor)
+                let indentUnit = cm.options.indentUnit
+                let shouldDelChar = false
+                for(let cursorIndex in cursorsPos) {
+                    let cursorPos = cursorsPos[cursorIndex]
+                    let indentation = cm.getStateAfter(cursorPos.line).indented
+                    if(!(indentation !== 0 &&
+                        cursorPos.ch <= indentation &&
+                        cursorPos.ch % indentUnit === 0)) {
+                        shouldDelChar = true;
+                    }
+                }
+                if(!shouldDelChar) {
+                    cm.execCommand('indentLess')
+                }
+                else {
+                    cm.execCommand('delCharBefore')
+                }
+            }
+            else {
+                cm.execCommand('delCharBefore')
+            }
+        },
+        'Shift-Tab': (cm) => cm.execCommand('indentLess'),
+    }
+})
+
+document.title = window.location.href.split('/').at(-1)
+
+if(codeMirror.onsave !== undefined) {
+    alert('error')
+}
+codeMirror.onsave = () => {
+    alert(codeMirror.getValue())
+}
+
+document.onkeydown = function(e) {
+    if(e.ctrlKey && e.which === 83) {
+        e.preventDefault()
+        codeMirror.onsave()
+        return false
+    }
+    if(e.ctrlKey && e.which === 191) {
+        e.preventDefault()
+        codeMirror.toggleComment({ indent:true })
+        return false
+    }
+}
+
+</script><div class="CodeMirror cm-s-default CodeMirror-focused" translate="no"><div style="overflow: hidden; position: relative; width: 3px; height: 0px; top: 4px; left: 48px;"><textarea style="position: absolute; bottom: -1em; padding: 0px; width: 1px; height: 1em; min-height: 1em; outline: none;" wrap="off" autocorrect="off" autocapitalize="none" spellcheck="false" tabindex="0"></textarea></div><div class="CodeMirror-vscrollbar" tabindex="-1" cm-not-content="true" style="width: 18px; visibility: hidden; display: block; bottom: 0px;"><div style="min-width: 1px; height: 1403px;"></div></div><div class="CodeMirror-hscrollbar" tabindex="-1" cm-not-content="true" style="height: 18px; visibility: hidden;"><div style="height: 100%; min-height: 1px; width: 0px;"></div></div><div class="CodeMirror-scrollbar-filler" cm-not-content="true"></div><div class="CodeMirror-gutter-filler" cm-not-content="true"></div><div class="CodeMirror-scroll" tabindex="-1" draggable="true"><div class="CodeMirror-sizer" style="margin-left: 32px; margin-bottom: 0px; border-right-width: 50px; min-height: 1403px; min-width: 598.15px; padding-right: 0px; padding-bottom: 0px;"><div style="position: relative; top: 0px;"><div class="CodeMirror-lines" role="presentation"><div style="position: relative; outline: none;" role="presentation"><div class="CodeMirror-measure"><pre class="CodeMirror-line-like"><span>xxxxxxxxxx</span></pre><div class="CodeMirror-linenumber CodeMirror-gutter-elt"><div>91</div></div></div><div class="CodeMirror-measure"></div><div style="position: relative; z-index: 1;"></div><div class="CodeMirror-cursors" style=""><div class="CodeMirror-cursor" style="left: 16px; top: 0px; height: 15.3333px;">&nbsp;</div></div><div class="CodeMirror-code" role="presentation" style=""><div style="position: relative;" class="CodeMirror-activeline"><div class="CodeMirror-activeline-background CodeMirror-linebackground"></div><div class="CodeMirror-gutter-background CodeMirror-activeline-gutter" style="left: -32px; width: 32px;"></div><div class="CodeMirror-gutter-wrapper CodeMirror-activeline-gutter" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">1</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">2</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># it is possible to use type annotations for globals and locals</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">3</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-par">@</span><span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">4</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">i</span> <span class="cm-number">1</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">5</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">6</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-par">@</span><span class="cm-type">str</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">7</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">s</span> <span class="cm-number">2</span> <span class="cm-comment"># type error!</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">8</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">9</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># primitive types besides num/numbers and str/strings are bool/booleans</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">10</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-par">@</span><span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">11</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">b</span> <span class="cm-par">true</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">12</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">13</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># to create an empty array, give it a type</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">14</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">array</span><span class="cm-par">(</span><span class="cm-type">num</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">15</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">my_array</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">16</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">v</span> <span class="cm-type">array</span><span class="cm-par">(</span><span class="cm-type">num</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">17</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">v</span><span class="cm-dot">.</span><span class="cm-normal">push</span><span class="cm-par">(</span><span class="cm-number">2</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">18</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">v</span><span class="cm-dot">.</span><span class="cm-normal">push</span><span class="cm-par">(</span><span class="cm-string">'x'</span><span class="cm-par">)</span> <span class="cm-comment"># type error!</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">19</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">v</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">20</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">21</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># similarly, you can create a map</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">22</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">map</span><span class="cm-par">(</span><span class="cm-type">str</span> <span class="cm-type">num</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">23</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">my_map</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">24</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">m</span> <span class="cm-type">map</span><span class="cm-par">(</span><span class="cm-type">str</span> <span class="cm-type">num</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">25</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">m</span><span class="cm-dot">.</span><span class="cm-normal">set</span><span class="cm-par">(</span><span class="cm-string">'x'</span> <span class="cm-number">1</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">26</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">m</span><span class="cm-dot">.</span><span class="cm-normal">set</span><span class="cm-par">(</span><span class="cm-string">'y'</span> <span class="cm-number">2</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">27</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">m</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">28</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">29</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># zekai doesn't allow to create anonymous objects (besides struct constructors)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">30</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># if you need an anonymous for compatibility reasons with other code, you can use</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">31</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># Object.fromEntries()</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">32</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">my_object</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">33</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">m</span> <span class="cm-normal">my_map</span><span class="cm-par">()</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">34</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">o</span> <span class="cm-type">Object</span><span class="cm-dot">.</span><span class="cm-normal">fromEntries</span><span class="cm-par">(</span><span class="cm-normal">m</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">35</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">o</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">36</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">37</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># typescript union types</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">38</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">None</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">39</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">State</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">40</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">value</span> <span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">41</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">union</span><span class="cm-par">(</span><span class="cm-type">None</span> <span class="cm-type">State</span><span class="cm-par">)</span> <span class="cm-type">void</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">42</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">my_union</span> <span class="cm-normal">x</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">43</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-keyword">    if </span><span class="cm-normal">x</span> <span class="cm-keyword">instanceof</span> <span class="cm-type">None</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">44</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">        <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-string">'None'</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">45</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-keyword">    if </span><span class="cm-normal">x</span> <span class="cm-keyword">instanceof</span> <span class="cm-type">State</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">46</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">        <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-string">'State'</span> <span class="cm-normal">x</span><span class="cm-dot">.</span><span class="cm-normal">value</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">47</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">48</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># typescript tuples</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">49</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">tuple</span><span class="cm-par">(</span><span class="cm-type">num</span> <span class="cm-type">str</span><span class="cm-par">)</span> <span class="cm-type">void</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">50</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">my_tuple</span> <span class="cm-normal">x</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">51</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">x</span><span class="cm-keyword">[</span><span class="cm-number">0</span><span class="cm-keyword">]</span> <span class="cm-normal">x</span><span class="cm-keyword">[</span><span class="cm-number">1</span><span class="cm-keyword">]</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">52</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">53</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># there are also fun types</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">54</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">fun</span><span class="cm-par">(</span><span class="cm-type">num</span> <span class="cm-type">void</span><span class="cm-par">)</span> <span class="cm-type">void</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">55</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">twice</span> <span class="cm-normal">f</span><span class="cm-keyword">\</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">56</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">f</span><span class="cm-par">(</span><span class="cm-number">1</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">57</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">f</span><span class="cm-par">(</span><span class="cm-number">2</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">58</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">59</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># to emulate classes/interfaces use a struct with closures</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">60</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">Class</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">61</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">get_x</span> <span class="cm-type">fun</span><span class="cm-par">(</span><span class="cm-type">num</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">62</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">set_x</span> <span class="cm-type">fun</span><span class="cm-par">(</span><span class="cm-type">num</span> <span class="cm-type">void</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">63</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">64</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">Class</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">65</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">new_class</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">66</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">x</span> <span class="cm-number">0</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">67</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-type">Class</span><span class="cm-par">(</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">68</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">        <span class="cm-keyword">\\</span> <span class="cm-normal">x</span> <span class="cm-comment"># lambda expression, explained later</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">69</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">        <span class="cm-keyword">\</span><span class="cm-normal">n</span><span class="cm-keyword">\</span> <span class="cm-normal">x</span> <span class="cm-keyword">=</span> <span class="cm-normal">n</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">70</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">71</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">72</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># to create a type alias, just start its id with upper case and a type</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">73</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">Foo</span> <span class="cm-type">Class</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">74</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">75</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-par">@</span><span class="cm-type">Foo</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">76</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">foo</span> <span class="cm-normal">new_class</span><span class="cm-par">()</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">77</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">78</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">main</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">79</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">my_array</span><span class="cm-par">())</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">80</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">my_map</span><span class="cm-par">())</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">81</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">my_object</span><span class="cm-par">()</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">82</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">my_union</span><span class="cm-par">(</span><span class="cm-type">None</span><span class="cm-par">())</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">83</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">my_union</span><span class="cm-par">(</span><span class="cm-type">State</span><span class="cm-par">(</span><span class="cm-number">7</span><span class="cm-par">))</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">84</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">my_tuple</span><span class="cm-par">(</span><span class="cm-keyword">[</span><span class="cm-number">1</span> <span class="cm-string">'z'</span><span class="cm-keyword">]</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">85</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">n</span> <span class="cm-number">0</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">86</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">twice</span><span class="cm-par">(</span><span class="cm-keyword">\</span><span class="cm-normal">x</span><span class="cm-keyword">\</span> <span class="cm-normal">n</span> <span class="cm-keyword">+=</span> <span class="cm-normal">x</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">87</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">n</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">88</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">c</span> <span class="cm-normal">new_class</span><span class="cm-par">()</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">89</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">c</span><span class="cm-dot">.</span><span class="cm-normal">set_x</span><span class="cm-par">(</span><span class="cm-number">9</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">90</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">c</span><span class="cm-dot">.</span><span class="cm-normal">get_x</span><span class="cm-par">())</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">91</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">foo</span><span class="cm-par">)</span></span></pre></div></div></div></div></div></div><div style="position: absolute; height: 50px; width: 1px; border-bottom: 0px solid transparent; top: 1403px;"></div><div class="CodeMirror-gutters" style="height: 1453px; left: 0px;"><div class="CodeMirror-gutter CodeMirror-linenumbers" style="width: 31px;"></div></div></div></div>
+
+<script>
+document.body.style.background = '#222'
+document.body.style.visibility = 'hidden'
+
+let unload_handler = (e) => {
+    e.preventDefault()
+}
+
+let title = window.location.href.split('/').at(-1)
+
+let codemirror_value = `
+main
+    console.log('hi zekai!')
+`
+let codemirror_fetch = ''
+
+
+        codemirror_value = "\n# it is possible to use type annotations for globals and locals\n@num\ni 1\n\n@str\ns 2 # type error!\n\n# primitive types besides num/numbers and str/strings are bool/booleans\n@bool\nb true\n\n# to create an empty array, give it a type\narray(num)\nmy_array\n    v array(num)\n    v.push(2)\n    v.push('x') # type error!\n    v\n\n# similarly, you can create a map\nmap(str num)\nmy_map\n    m map(str num)\n    m.set('x' 1)\n    m.set('y' 2)\n    m\n\n# zekai doesn't allow to create anonymous objects (besides struct constructors)\n# if you need an anonymous for compatibility reasons with other code, you can use\n# Object.fromEntries()\nmy_object\n    m my_map()\n    o Object.fromEntries(m)\n    console.log(o)\n\n# typescript union types\nNone\nState\n    value num\nunion(None State) void\nmy_union x\n    if x instanceof None\n        console.log('None')\n    if x instanceof State\n        console.log('State' x.value)\n\n# typescript tuples\ntuple(num str) void\nmy_tuple x\n    console.log(x[0] x[1])\n\n# there are also fun types\nfun(num void) void\ntwice f\\\n    f(1)\n    f(2)\n\n# to emulate classes/interfaces use a struct with closures\nClass\n    get_x fun(num)\n    set_x fun(num void)\n\nClass\nnew_class\n    x 0\n    Class(\n        \\\\ x # lambda expression, explained later\n        \\n\\ x = n\n    )\n\n# to create a type alias, just start its id with upper case and a type\nFoo Class\n\n@Foo\nfoo new_class()\n\nmain\n    console.log(my_array())\n    console.log(my_map())\n    my_object()\n    my_union(None())\n    my_union(State(7))\n    my_tuple([1 'z'])\n    n 0\n    twice(\\x\\ n += x)\n    console.log(n)\n    c new_class()\n    c.set_x(9)\n    console.log(c.get_x())\n    console.log(foo)"
+        codemirror_fetch = 'http://localhost:777/' + "C:/@astor/@zekai/examples/18_types.z"
+    
+
+codeMirror.setValue(codemirror_value)
+codeMirror.clearHistory()
+codeMirror.on('change', () => {
+    document.title  = '● ' + title
+    window.addEventListener('beforeunload', unload_handler)
+})
+codeMirror.onsave = () => {
+    document.title = title
+    window.removeEventListener('beforeunload', unload_handler)
+    sessionStorage.setItem('history', JSON.stringify(codeMirror.getDoc().getHistory()))
+    let code = codeMirror.getValue()
+    let arraybuf = new TextEncoder().encode(code)
+    if(codemirror_fetch === '') {
+        return
+    }
+    fetch(codemirror_fetch, { method:'post', body:arraybuf })
+}
+
+let history = sessionStorage.getItem('history')
+if(history) {
+    codeMirror.getDoc().setHistory(JSON.parse(history))
+}
+
+document.body.style.visibility = ''
+codeMirror.focus()
+
+let cursor = sessionStorage.getItem('cursor')
+if(cursor) {
+    codeMirror.getDoc().setCursor(JSON.parse(cursor))
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('cursor', JSON.stringify(codeMirror.getDoc().getCursor()))
+}, 50)
+
+let scrollpos = sessionStorage.getItem('scrollpos')
+if(scrollpos) {
+    codeMirror.getScrollerElement().scrollTo(0, scrollpos)
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('scrollpos', codeMirror.getScrollerElement().scrollTop)
+}, 50)
+
+</script>
+
+<script type="module">
+export let i = 1;
+export let s = 2;
+export let b = true;
+export const my_array = () => {
+    let v = [];
+    v.push(2);
+    v.push('x');
+    return v;
+};
+export const my_map = () => {
+    let m = new Map();
+    m.set('x', 1);
+    m.set('y', 2);
+    return m;
+};
+export const my_object = () => {
+    let m = my_map();
+    let o = Object.fromEntries(m);
+    return console.log(o);
+};
+export class None {
+    constructor() { }
+    static struct = (o) => {
+        return new None();
+    };
+}
+export class State {
+    value;
+    constructor(value) {
+        this.value = value;
+    }
+    static struct = (o) => {
+        return new State(o.value);
+    };
+}
+export const my_union = (x) => {
+    if (x instanceof None) {
+        console.log('None');
+    }
+    if (x instanceof State) {
+        console.log('State', x.value);
+    }
+};
+export const my_tuple = (x) => {
+    return console.log(x[0], x[1]);
+};
+export const twice = (f) => {
+    f(1);
+    return f(2);
+};
+export class Class {
+    get_x;
+    set_x;
+    constructor(get_x, set_x) {
+        this.get_x = get_x;
+        this.set_x = set_x;
+    }
+    static struct = (o) => {
+        return new Class(o.get_x, o.set_x);
+    };
+}
+export const new_class = () => {
+    let x = 0;
+    return new Class(() => x, (n) => x = n);
+};
+export let foo = new_class();
+export const main = () => {
+    console.log(my_array());
+    console.log(my_map());
+    my_object();
+    my_union(new None());
+    my_union(new State(7));
+    my_tuple([1, 'z']);
+    let n = 0;
+    twice((x) => n += x);
+    console.log(n);
+    let c = new_class();
+    c.set_x(9);
+    console.log(c.get_x());
+    return console.log(foo);
+};
+
+main()
+</script>
+
+
+
+</body></html>

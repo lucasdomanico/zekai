@@ -1,0 +1,37 @@
+
+# line comment
+
+# globals ids start with lower case
+n := 7
+
+# the operator := is optional
+luck 777
+
+# booleans are either true or false
+on true
+off false
+
+# numbers literals are like js/ts
+hex 0xFFF
+
+# strings too!
+name 'bob'
+
+# arrays literals are like js/ts, but commas are optional
+v [1 2 3]
+w [1, 2, 3]
+q [
+    1, 2
+    3
+]
+
+main
+    console.log(n)
+    console.log(luck)
+    console.log(on)
+    console.log(off)
+    console.log(hex)
+    console.log(name)
+    console.log(v)
+    console.log(w)
+    console.log(q)

@@ -1,0 +1,15 @@
+
+# conditional ternary operator is different (but has the same precedence order)
+
+bool num
+fee is_member\ iif is_member (2) (10)
+
+# parentheses are optional, they are for readability purpose
+num str
+beverage age\ iif age >= 21 'beer' 'juice'
+
+main
+    console.log(fee(true))
+    console.log(fee(false))
+    console.log(beverage(18))
+    console.log(beverage(40))

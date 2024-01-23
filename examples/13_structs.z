@@ -1,0 +1,24 @@
+# structs, also called records, start with upper case character
+Point
+    x number # id and type
+    y number
+
+None # an empty struct
+
+main
+    console.log(new Point(1 2)) # the new operator is optional
+    console.log(Point(3 4))
+    console.log(None())
+    p Point(0 0)
+    p.x = 20 # like js/ts the . operator is used to access the field
+    console.log(p)
+    # you can also create a struct giving the fields ids
+    console.log(Point({ x:7, y:9 }))
+    console.log(Point({ y:7, x:9 })) # different order
+    # like arrays, commas are optional
+    console.log(Point({ x:11 y:22 }))
+    # the : operator is also optional
+    console.log(Point({
+        x 11
+        y 22
+    }))

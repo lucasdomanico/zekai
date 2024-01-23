@@ -1,0 +1,43 @@
+# for statements works like imperative languages
+# the only differentce is the syntax
+# it doesn't requires parantheses nor ; operators
+
+loop
+    for i 0, i < 10, i += 1 # remember there are not postfix increments in zekai
+        console.log(i)
+    # commas are optional, but they increase readability
+    for i 0 i < 10 i += 1
+        console.log(i)
+
+# you can omit the increment expression
+loopy
+    for i 0, i < 10
+        console.log(i)
+        i += 1
+
+# you can also omit the conditional expression
+loopz
+    for i 0
+        if i >= 10 break # break continue and ret/return works as expected
+        console.log(i)
+        i += 1
+
+# it is also possible to omit the let expression
+loopx
+    i 0
+    for
+        if i >= 10 break
+        console.log(i)
+        i += 1
+
+# there are not for in in zekai, use the forEach function 
+
+main
+    console.log('loop')
+    loop()
+    console.log('loopy')
+    loopy()
+    console.log('loopz')
+    loopz()
+    console.log('loopx')
+    loopx()
