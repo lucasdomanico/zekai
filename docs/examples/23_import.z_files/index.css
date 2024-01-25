@@ -54,6 +54,8 @@ body {
 .cm-s-default .cm-let     {color:#ffe100;}
 .cm-s-default .cm-std     {color:#6dc9ff;}
 
+.cm-s-default .cm-sad     {background:red; color:white;}
+
 
 /* .cm-s-default .cm-let     {color:white; background:#444;} */
 
