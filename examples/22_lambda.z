@@ -3,7 +3,12 @@
 
 f
     v [1 2 3]
-    v.map(\x: x * 2) # inline lambda expression
+    q v.map(\x: x * 2) # inline lambda expression
+    q.map(\x\ x * 2) # you can also use another \ instead of :
+
+sad
+    \: 0 # avoid sad emojis when there are no arguments!
+    \\ 0 # use double \
 
 # you can also use lambda expressions with a code block/suite as the body
 suite
@@ -33,7 +38,18 @@ timeout
         setTimeout(resolve 1000)
     )
 
+# note that defuns are a special syntax for functions
+# you can write a defun like
+num num num
+add a b: a + b
+# as a global with a lambada
+@fun(num num num)
+sub \a b: a - b
+
 main
     console.log(f())
+    console.log(sad())
     console.log(suite())
     wait()
+    console.log(add(1 2))
+    console.log(sub(1 2))

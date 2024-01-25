@@ -1,6 +1,11 @@
 export const f = () => {
     let v = [1, 2, 3];
-    return v.map((x) => x * 2);
+    let q = v.map((x) => x * 2);
+    return q.map((x) => x * 2);
+};
+export const sad = () => {
+    () => 0;
+    return () => 0;
 };
 export const suite = () => {
     let v = [1, 2, 3];
@@ -29,8 +34,13 @@ export const timeout = () => {
         return setTimeout(resolve, 1000);
     });
 };
+export const add = (a, b) => a + b;
+export let sub = (a, b) => a - b;
 export const main = () => {
     console.log(f());
+    console.log(sad());
     console.log(suite());
-    return wait();
+    wait();
+    console.log(add(1, 2));
+    return console.log(sub(1, 2));
 };
