@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<script src="19_extends.z_files/codemirror.js"></script>
+<script src="19_extends.z_files/simple.js"></script>
+<script src="19_extends.z_files/matchbrackets.js"></script>
+<script src="19_extends.z_files/closebrackets.js"></script>
+<script src="19_extends.z_files/comment.js"></script>
+<script src="19_extends.z_files/active-line.js"></script>
+<script src="19_extends.z_files/match-highlighter.js"></script>
+<link rel="stylesheet" href="19_extends.z_files/codemirror.css">
+<link rel="stylesheet" href="19_extends.z_files/index.css">
+<title>19_extends.z</title></head>
+
+<body style="margin: 0px; padding: 0px; background: rgb(34, 34, 34);">
+
+<script>
+
+// let keywords = 'async|await|import|ret|if|for|else|iif|instanceof|new|break|continue'
+
+CodeMirror.defineSimpleMode('zekai', {
+    start: [
+
+        { token: "banned",              regex: /^[ ]+(let) /, sol:true },
+
+
+        // list all operators
+        { token: ["normal", "keyword"], regex: /^([ ]+[a-z_][A-Za-z_\d]*) (\=|\+\=|\+|\-|\*|\/|\%)/, sol:true },
+        // ------------------
+
+
+        { token: "keyword",             regex: /^[ ]+(async|await|import|ret|if|for|else|iif|new) /, sol:true },
+        { token: ["normal", "let"],     regex: /^([ ]+)([a-z_][A-Za-z_\d]*) /, sol:true },
+
+        
+        { token: "string",  regex: /'(?:[^\\]|\\.)*?(?:'|$)/ },
+        { token: "number",  regex: /0x[a-f\d]+|[-+]?(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i, },
+        { token: "keyword", regex: /(?:async|await|import|ret|if|for|else|iif|instanceof|new|break|continue)\b/ },
+
+        { token: "keyword", regex: /\&\&/ },
+        { token: "keyword", regex: /\|\|/ },
+        { token: "bitwise", regex: /\|/ },
+        { token: "bitwise", regex: /\^/ },
+        { token: "bitwise", regex: /\&/ },
+        { token: "bitwise", regex: /\<\</ },
+        { token: "bitwise", regex: /\>\>\>/ },
+        { token: "bitwise", regex: /\>\>/ },
+        { token: "bitwise", regex: /\~/ },
+
+        { token: "banned", regex: /(\!\=\=)|(\=\=\=)/ },
+
+        { token: "keyword", regex: /[-+\/*=<>!%\[\]\{\}\:]+/ },
+        { token: "par",     regex: /\@/ },
+        // { token: "keyword", regex: /\||\[|\]/ },
+        { token: "sad",     regex: /\\:/ },
+        { token: "keyword", regex: /\\/ },
+        { token: "par",     regex: /(?:true|false)\b/ },
+        { token: "std",     regex: /(?:range|clone)\b/ },
+        { token: "par",     regex: /\(|\)/ },
+        { token: "comment", regex: /\#.*/ },
+        { token: "type",    regex: /^[A-Z][A-Za-z$\d]+/ },
+        { token: "type",    regex: /(?:bool|num|number|int|void|fun|str|string|array|union|extends|map|tuple)\b/ },
+        { token: "generic", regex: /^[A-Z]/ },
+        { token: "evil",    regex: /(?:null|undefined|any|typeof|let)\b/ },
+        { token: "banned",  regex: /[\;\?]/ },
+        { token: "comma",   regex: /[\,]/ },
+        { token: "normal",  regex: /^[a-z$][\w$]*/ },
+        { token: "dot",     regex: /\./ },
+        { token: "tab",     regex: /^[ ]+$/, sol:true },
+        { token: "excess",  regex: /^[ ]+$/ },
+    ],
+    meta: {
+        dontIndentStates: ["comment"],
+        lineComment: "#"
+    }
+})
+
+let codeMirror = CodeMirror(document.body, {
+    value: '',
+    mode:  "zekai",
+    lineNumbers: true,
+    indentUnit: 4,
+    indentWithTabs: false,
+    smartIndent: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    styleActiveLine: true,
+
+    // highlightSelectionMatches: {
+    //     showToken: true
+    // },
+
+    highlightSelectionMatches: {
+        minChars: 2,
+        delay: 100,
+        // wordsOnly: true,
+        // annotateScrollbar: false,
+        // showToken: false,
+        // trim: true
+    },
+
+    viewportMargin: 10000, // otherwise browser's find (and replace?) doesn't works
+
+    extraKeys: {
+        Tab: (cm) => {
+            if(cm.getMode().name === 'null') {
+                cm.execCommand('insertTab')
+            }
+            else {
+                if(cm.somethingSelected()) {
+                    cm.execCommand('indentMore')
+                }
+                else {
+                    cm.execCommand('insertSoftTab')
+                }
+            }
+        },
+        Backspace: (cm) => {
+            if(!cm.somethingSelected()) {
+                let cursorsPos = cm.listSelections().map((selection) => selection.anchor)
+                let indentUnit = cm.options.indentUnit
+                let shouldDelChar = false
+                for(let cursorIndex in cursorsPos) {
+                    let cursorPos = cursorsPos[cursorIndex]
+                    let indentation = cm.getStateAfter(cursorPos.line).indented
+                    if(!(indentation !== 0 &&
+                        cursorPos.ch <= indentation &&
+                        cursorPos.ch % indentUnit === 0)) {
+                        shouldDelChar = true;
+                    }
+                }
+                if(!shouldDelChar) {
+                    cm.execCommand('indentLess')
+                }
+                else {
+                    cm.execCommand('delCharBefore')
+                }
+            }
+            else {
+                cm.execCommand('delCharBefore')
+            }
+        },
+        'Shift-Tab': (cm) => cm.execCommand('indentLess'),
+    }
+})
+
+document.title = window.location.href.split('/').at(-1)
+
+if(codeMirror.onsave !== undefined) {
+    alert('error')
+}
+codeMirror.onsave = () => {
+    alert(codeMirror.getValue())
+}
+
+document.onkeydown = function(e) {
+    if(e.ctrlKey && e.which === 83) {
+        e.preventDefault()
+        codeMirror.onsave()
+        return false
+    }
+    if(e.ctrlKey && e.which === 191) {
+        e.preventDefault()
+        codeMirror.toggleComment({ indent:true })
+        return false
+    }
+}
+
+</script><div class="CodeMirror cm-s-default CodeMirror-focused" translate="no"><div style="overflow: hidden; position: relative; width: 3px; height: 0px; top: 4px; left: 48px;"><textarea style="position: absolute; bottom: -1em; padding: 0px; width: 1px; height: 1em; min-height: 1em; outline: none;" wrap="off" autocorrect="off" autocapitalize="none" spellcheck="false" tabindex="0"></textarea></div><div class="CodeMirror-vscrollbar" tabindex="-1" cm-not-content="true" style="width: 18px; visibility: hidden; display: block; bottom: 0px;"><div style="min-width: 1px; height: 545px;"></div></div><div class="CodeMirror-hscrollbar" tabindex="-1" cm-not-content="true" style="height: 18px; visibility: hidden;"><div style="height: 100%; min-height: 1px; width: 0px;"></div></div><div class="CodeMirror-scrollbar-filler" cm-not-content="true"></div><div class="CodeMirror-gutter-filler" cm-not-content="true"></div><div class="CodeMirror-scroll" tabindex="-1" draggable="true"><div class="CodeMirror-sizer" style="margin-left: 32px; margin-bottom: 0px; border-right-width: 50px; min-height: 545px; min-width: 533.8px; padding-right: 0px; padding-bottom: 0px;"><div style="position: relative; top: 0px;"><div class="CodeMirror-lines" role="presentation"><div style="position: relative; outline: none;" role="presentation"><div class="CodeMirror-measure"><pre class="CodeMirror-line-like"><span>xxxxxxxxxx</span></pre><div class="CodeMirror-linenumber CodeMirror-gutter-elt"><div>35</div></div></div><div class="CodeMirror-measure"></div><div style="position: relative; z-index: 1;"></div><div class="CodeMirror-cursors" style=""><div class="CodeMirror-cursor" style="left: 16px; top: 0px; height: 15.3333px;">&nbsp;</div></div><div class="CodeMirror-code" role="presentation" style=""><div style="position: relative;" class="CodeMirror-activeline"><div class="CodeMirror-activeline-background CodeMirror-linebackground"></div><div class="CodeMirror-gutter-background CodeMirror-activeline-gutter" style="left: -32px; width: 32px;"></div><div class="CodeMirror-gutter-wrapper CodeMirror-activeline-gutter" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">1</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># if you want to extend a type, use the extends type and extends keyword</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">2</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># this way you can emulate inheritance</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">3</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># check carefully the generated .z.ts file, inspect their types</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">4</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">5</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">Animal</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">6</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">name</span> <span class="cm-type">str</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">7</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">8</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">Bear</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">9</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">roar</span> <span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">10</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">11</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">AnimalBear</span> <span class="cm-type">extends</span><span class="cm-par">(</span><span class="cm-type">Animal</span> <span class="cm-type">Bear</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">12</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">13</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">Animal</span> <span class="cm-type">void</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">14</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">animal</span> <span class="cm-normal">a</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">15</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">a</span> <span class="cm-keyword">instanceof</span> <span class="cm-type">Animal</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">16</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">a</span><span class="cm-dot">.</span><span class="cm-normal">name</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">17</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">18</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">Bear</span> <span class="cm-type">void</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">19</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">bear</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">20</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">b</span> <span class="cm-keyword">instanceof</span> <span class="cm-type">Bear</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">21</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">b</span><span class="cm-dot">.</span><span class="cm-normal">roar</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">22</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">23</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">AnimalBear</span> <span class="cm-type">void</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">24</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">animal_bear</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">25</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">b</span> <span class="cm-keyword">instanceof</span> <span class="cm-type">Animal</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">26</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">b</span> <span class="cm-keyword">instanceof</span> <span class="cm-type">Bear</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">27</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">b</span><span class="cm-dot">.</span><span class="cm-normal">name</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">28</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">b</span><span class="cm-dot">.</span><span class="cm-normal">roar</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">29</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">30</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">main</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">31</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">x</span> <span class="cm-type">extends</span><span class="cm-par">(</span><span class="cm-type">Animal</span><span class="cm-par">(</span><span class="cm-string">'foo'</span><span class="cm-par">)</span> <span class="cm-type">Bear</span><span class="cm-par">(</span><span class="cm-number">999</span><span class="cm-par">))</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">32</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">x</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">33</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">animal</span><span class="cm-par">(</span><span class="cm-normal">x</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">34</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">bear</span><span class="cm-par">(</span><span class="cm-normal">x</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">35</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">animal_bear</span><span class="cm-par">(</span><span class="cm-normal">x</span><span class="cm-par">)</span></span></pre></div></div></div></div></div></div><div style="position: absolute; height: 50px; width: 1px; border-bottom: 0px solid transparent; top: 545px;"></div><div class="CodeMirror-gutters" style="height: 595px; left: 0px;"><div class="CodeMirror-gutter CodeMirror-linenumbers" style="width: 31px;"></div></div></div></div>
+
+<script>
+document.body.style.background = '#222'
+document.body.style.visibility = 'hidden'
+
+let unload_handler = (e) => {
+    e.preventDefault()
+}
+
+let title = window.location.href.split('/').at(-1)
+
+let codemirror_value = `
+main
+    console.log('hi zekai!')
+`
+let codemirror_fetch = ''
+
+
+        codemirror_value = "# if you want to extend a type, use the extends type and extends keyword\n# this way you can emulate inheritance\n# check carefully the generated .z.ts file, inspect their types\n\nAnimal\n    name str\n\nBear\n    roar num\n\nAnimalBear extends(Animal Bear)\n\nAnimal void\nanimal a\n    console.log(a instanceof Animal)\n    console.log(a.name)\n\nBear void\nbear b\n    console.log(b instanceof Bear)\n    console.log(b.roar)\n\nAnimalBear void\nanimal_bear b\n    console.log(b instanceof Animal)\n    console.log(b instanceof Bear)\n    console.log(b.name)\n    console.log(b.roar)\n\nmain\n    x extends(Animal('foo') Bear(999))\n    console.log(x)\n    animal(x)\n    bear(x)\n    animal_bear(x)"
+        codemirror_fetch = 'http://localhost:777/' + "C:/@astor/@zekai/examples/19_extends.z"
+    
+
+codeMirror.setValue(codemirror_value)
+codeMirror.clearHistory()
+codeMirror.on('change', () => {
+    document.title  = '● ' + title
+    window.addEventListener('beforeunload', unload_handler)
+})
+codeMirror.onsave = () => {
+    document.title = title
+    window.removeEventListener('beforeunload', unload_handler)
+    sessionStorage.setItem('history', JSON.stringify(codeMirror.getDoc().getHistory()))
+    let code = codeMirror.getValue()
+    let arraybuf = new TextEncoder().encode(code)
+    if(codemirror_fetch === '') {
+        return
+    }
+    fetch(codemirror_fetch, { method:'post', body:arraybuf })
+}
+
+let history = sessionStorage.getItem('history')
+if(history) {
+    codeMirror.getDoc().setHistory(JSON.parse(history))
+}
+
+document.body.style.visibility = ''
+codeMirror.focus()
+
+let cursor = sessionStorage.getItem('cursor')
+if(cursor) {
+    codeMirror.getDoc().setCursor(JSON.parse(cursor))
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('cursor', JSON.stringify(codeMirror.getDoc().getCursor()))
+}, 50)
+
+let scrollpos = sessionStorage.getItem('scrollpos')
+if(scrollpos) {
+    codeMirror.getScrollerElement().scrollTo(0, scrollpos)
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('scrollpos', codeMirror.getScrollerElement().scrollTop)
+}, 50)
+
+</script>
+
+<script type="module">
+const $extends = (a, b) => {
+    let o = { ...a, ...b };
+    Object.setPrototypeOf(o, Object.getPrototypeOf(b));
+    Object.setPrototypeOf(Object.getPrototypeOf(o), Object.getPrototypeOf(a));
+    return o;
+};
+export class Animal {
+    name;
+    constructor(name) {
+        this.name = name;
+    }
+    static struct = (o) => {
+        return new Animal(o.name);
+    };
+}
+export class Bear {
+    roar;
+    constructor(roar) {
+        this.roar = roar;
+    }
+    static struct = (o) => {
+        return new Bear(o.roar);
+    };
+}
+export const animal = (a) => {
+    console.log(a instanceof Animal);
+    return console.log(a.name);
+};
+export const bear = (b) => {
+    console.log(b instanceof Bear);
+    return console.log(b.roar);
+};
+export const animal_bear = (b) => {
+    console.log(b instanceof Animal);
+    console.log(b instanceof Bear);
+    console.log(b.name);
+    return console.log(b.roar);
+};
+export const main = () => {
+    let x = $extends(new Animal('foo'), new Bear(999));
+    console.log(x);
+    animal(x);
+    bear(x);
+    return animal_bear(x);
+};
+
+main()
+</script>
+
+
+
+</body></html>

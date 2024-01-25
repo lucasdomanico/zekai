@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<script src="15_operators.z_files/codemirror.js"></script>
+<script src="15_operators.z_files/simple.js"></script>
+<script src="15_operators.z_files/matchbrackets.js"></script>
+<script src="15_operators.z_files/closebrackets.js"></script>
+<script src="15_operators.z_files/comment.js"></script>
+<script src="15_operators.z_files/active-line.js"></script>
+<script src="15_operators.z_files/match-highlighter.js"></script>
+<link rel="stylesheet" href="15_operators.z_files/codemirror.css">
+<link rel="stylesheet" href="15_operators.z_files/index.css">
+<title>15_operators.z</title></head>
+
+<body style="margin: 0px; padding: 0px; background: rgb(34, 34, 34);">
+
+<script>
+
+// let keywords = 'async|await|import|ret|if|for|else|iif|instanceof|new|break|continue'
+
+CodeMirror.defineSimpleMode('zekai', {
+    start: [
+
+        { token: "banned",              regex: /^[ ]+(let) /, sol:true },
+
+
+        // list all operators
+        { token: ["normal", "keyword"], regex: /^([ ]+[a-z_][A-Za-z_\d]*) (\=|\+\=|\+|\-|\*|\/|\%)/, sol:true },
+        // ------------------
+
+
+        { token: "keyword",             regex: /^[ ]+(async|await|import|ret|if|for|else|iif|new) /, sol:true },
+        { token: ["normal", "let"],     regex: /^([ ]+)([a-z_][A-Za-z_\d]*) /, sol:true },
+
+        
+        { token: "string",  regex: /'(?:[^\\]|\\.)*?(?:'|$)/ },
+        { token: "number",  regex: /0x[a-f\d]+|[-+]?(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i, },
+        { token: "keyword", regex: /(?:async|await|import|ret|if|for|else|iif|instanceof|new|break|continue)\b/ },
+
+        { token: "keyword", regex: /\&\&/ },
+        { token: "keyword", regex: /\|\|/ },
+        { token: "bitwise", regex: /\|/ },
+        { token: "bitwise", regex: /\^/ },
+        { token: "bitwise", regex: /\&/ },
+        { token: "bitwise", regex: /\<\</ },
+        { token: "bitwise", regex: /\>\>\>/ },
+        { token: "bitwise", regex: /\>\>/ },
+        { token: "bitwise", regex: /\~/ },
+
+        { token: "banned", regex: /(\!\=\=)|(\=\=\=)/ },
+
+        { token: "keyword", regex: /[-+\/*=<>!%\[\]\{\}\:]+/ },
+        { token: "par",     regex: /\@/ },
+        // { token: "keyword", regex: /\||\[|\]/ },
+        { token: "sad",     regex: /\\:/ },
+        { token: "keyword", regex: /\\/ },
+        { token: "par",     regex: /(?:true|false)\b/ },
+        { token: "std",     regex: /(?:range|clone)\b/ },
+        { token: "par",     regex: /\(|\)/ },
+        { token: "comment", regex: /\#.*/ },
+        { token: "type",    regex: /^[A-Z][A-Za-z$\d]+/ },
+        { token: "type",    regex: /(?:bool|num|number|int|void|fun|str|string|array|union|extends|map|tuple)\b/ },
+        { token: "generic", regex: /^[A-Z]/ },
+        { token: "evil",    regex: /(?:null|undefined|any|typeof|let)\b/ },
+        { token: "banned",  regex: /[\;\?]/ },
+        { token: "comma",   regex: /[\,]/ },
+        { token: "normal",  regex: /^[a-z$][\w$]*/ },
+        { token: "dot",     regex: /\./ },
+        { token: "tab",     regex: /^[ ]+$/, sol:true },
+        { token: "excess",  regex: /^[ ]+$/ },
+    ],
+    meta: {
+        dontIndentStates: ["comment"],
+        lineComment: "#"
+    }
+})
+
+let codeMirror = CodeMirror(document.body, {
+    value: '',
+    mode:  "zekai",
+    lineNumbers: true,
+    indentUnit: 4,
+    indentWithTabs: false,
+    smartIndent: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    styleActiveLine: true,
+
+    // highlightSelectionMatches: {
+    //     showToken: true
+    // },
+
+    highlightSelectionMatches: {
+        minChars: 2,
+        delay: 100,
+        // wordsOnly: true,
+        // annotateScrollbar: false,
+        // showToken: false,
+        // trim: true
+    },
+
+    viewportMargin: 10000, // otherwise browser's find (and replace?) doesn't works
+
+    extraKeys: {
+        Tab: (cm) => {
+            if(cm.getMode().name === 'null') {
+                cm.execCommand('insertTab')
+            }
+            else {
+                if(cm.somethingSelected()) {
+                    cm.execCommand('indentMore')
+                }
+                else {
+                    cm.execCommand('insertSoftTab')
+                }
+            }
+        },
+        Backspace: (cm) => {
+            if(!cm.somethingSelected()) {
+                let cursorsPos = cm.listSelections().map((selection) => selection.anchor)
+                let indentUnit = cm.options.indentUnit
+                let shouldDelChar = false
+                for(let cursorIndex in cursorsPos) {
+                    let cursorPos = cursorsPos[cursorIndex]
+                    let indentation = cm.getStateAfter(cursorPos.line).indented
+                    if(!(indentation !== 0 &&
+                        cursorPos.ch <= indentation &&
+                        cursorPos.ch % indentUnit === 0)) {
+                        shouldDelChar = true;
+                    }
+                }
+                if(!shouldDelChar) {
+                    cm.execCommand('indentLess')
+                }
+                else {
+                    cm.execCommand('delCharBefore')
+                }
+            }
+            else {
+                cm.execCommand('delCharBefore')
+            }
+        },
+        'Shift-Tab': (cm) => cm.execCommand('indentLess'),
+    }
+})
+
+document.title = window.location.href.split('/').at(-1)
+
+if(codeMirror.onsave !== undefined) {
+    alert('error')
+}
+codeMirror.onsave = () => {
+    alert(codeMirror.getValue())
+}
+
+document.onkeydown = function(e) {
+    if(e.ctrlKey && e.which === 83) {
+        e.preventDefault()
+        codeMirror.onsave()
+        return false
+    }
+    if(e.ctrlKey && e.which === 191) {
+        e.preventDefault()
+        codeMirror.toggleComment({ indent:true })
+        return false
+    }
+}
+
+</script><div class="CodeMirror cm-s-default CodeMirror-focused" translate="no"><div style="overflow: hidden; position: relative; width: 3px; height: 0px; top: 96px; left: 148.1px;"><textarea style="position: absolute; bottom: -1em; padding: 0px; width: 1px; height: 1em; min-height: 1em; outline: none;" wrap="off" autocorrect="off" autocapitalize="none" spellcheck="false" tabindex="0"></textarea></div><div class="CodeMirror-vscrollbar" tabindex="-1" cm-not-content="true" style="width: 18px; visibility: hidden; display: block; bottom: 0px;"><div style="min-width: 1px; height: 1143px;"></div></div><div class="CodeMirror-hscrollbar" tabindex="-1" cm-not-content="true" style="height: 18px; visibility: hidden;"><div style="height: 100%; min-height: 1px; width: 0px;"></div></div><div class="CodeMirror-scrollbar-filler" cm-not-content="true"></div><div class="CodeMirror-gutter-filler" cm-not-content="true"></div><div class="CodeMirror-scroll" tabindex="-1" draggable="true"><div class="CodeMirror-sizer" style="margin-left: 32px; margin-bottom: 0px; border-right-width: 50px; min-height: 1143px; min-width: 469.45px; padding-right: 0px; padding-bottom: 0px;"><div style="position: relative; top: 0px;"><div class="CodeMirror-lines" role="presentation"><div style="position: relative; outline: none;" role="presentation"><div class="CodeMirror-measure"></div><div class="CodeMirror-measure"></div><div style="position: relative; z-index: 1;"></div><div class="CodeMirror-cursors" style=""><div class="CodeMirror-cursor" style="left: 116.1px; top: 92px; height: 15.3333px;">&nbsp;</div></div><div class="CodeMirror-code" role="presentation" style=""><div style="position: relative;" class=""><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">1</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">2</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># operators work just like in js/ts, including their precedence</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">3</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">4</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">bool</span> <span class="cm-type">bool</span> <span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">5</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">or</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-keyword">||</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">6</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;" class="CodeMirror-activeline"><div class="CodeMirror-activeline-background CodeMirror-linebackground"></div><div class="CodeMirror-gutter-background CodeMirror-activeline-gutter" style="left: -32px; width: 32px;"></div><div class="CodeMirror-gutter-wrapper CodeMirror-activeline-gutter" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">7</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">bool</span> <span class="cm-type">bool</span> <span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">8</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">and</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-keyword">&amp;&amp;</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">9</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">10</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span> <span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">11</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">bit_or</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-bitwise">|</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">12</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">13</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span> <span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">14</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">bit_xor</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-bitwise">^</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">15</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">16</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span> <span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">17</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">bit_and</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-bitwise">&amp;</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">18</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">19</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># equality operators are always strict</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">20</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span> <span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">21</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">eq</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-keyword">==</span> <span class="cm-normal">b</span> <span class="cm-comment"># transpiles to '===' operator</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">22</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span> <span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">23</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">neq</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-keyword">!=</span> <span class="cm-normal">b</span> <span class="cm-comment"># transpiles to '!==' operator</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">24</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">25</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># relational</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">26</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span> <span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">27</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">gte</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-keyword">&gt;=</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">28</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span> <span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">29</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">gt</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-keyword">&gt;</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">30</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span> <span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">31</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">lte</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-keyword">&lt;=</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">32</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span> <span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">33</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">lt</span> <span class="cm-normal">a</span> <span class="cm-normal">b</span><span class="cm-keyword">:</span> <span class="cm-normal">a</span> <span class="cm-keyword">&lt;</span> <span class="cm-normal">b</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">34</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">35</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># same for bitwise shifts &gt;&gt;&gt; &gt;&gt; &lt;&lt;</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">36</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># same for additive and multiplicative operators: + - * / %</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">37</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">38</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># unary</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">39</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">bool</span> <span class="cm-type">bool</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">40</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">not</span> <span class="cm-normal">x</span><span class="cm-keyword">:</span> <span class="cm-keyword">!</span><span class="cm-normal">x</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">41</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">42</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">bit_not</span> <span class="cm-normal">x</span><span class="cm-keyword">:</span> <span class="cm-bitwise">~</span><span class="cm-normal">x</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">43</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">num</span> <span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">44</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">neg</span> <span class="cm-normal">x</span><span class="cm-keyword">:</span> <span class="cm-keyword">-</span><span class="cm-normal">x</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">45</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">46</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># there are no prefix increment or decrement ++n --n</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">47</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># neither postfix increment or decrement n++ y++</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">48</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">49</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># the next struct is used to show member access operator below</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">50</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-type">Point</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">51</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">x</span> <span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">52</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">y</span> <span class="cm-type">num</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">53</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">54</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">main</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">55</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-comment"># only additive and multiplicative assignments</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">56</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">n</span> <span class="cm-number">0</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">57</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    n</span><span class="cm-keyword"> =</span> <span class="cm-number">1</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">58</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    n</span><span class="cm-keyword"> +=</span> <span class="cm-number">2</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">59</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    n</span><span class="cm-keyword"> -=</span> <span class="cm-number">3</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">60</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    n</span><span class="cm-keyword"> *=</span> <span class="cm-number">4</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">61</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    n</span><span class="cm-keyword"> /=</span> <span class="cm-number">5</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">62</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    n</span><span class="cm-keyword"> %=</span> <span class="cm-number">6</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">63</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-comment"># function calls</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">64</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">and</span><span class="cm-par">(true</span> <span class="cm-par">false))</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">65</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-comment"># computed member access</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">66</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">v</span> <span class="cm-keyword">[</span><span class="cm-number">1</span> <span class="cm-number">2</span> <span class="cm-number">3</span><span class="cm-keyword">]</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">67</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">v</span><span class="cm-keyword">[</span><span class="cm-number">1</span><span class="cm-keyword">]</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">68</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">v</span><span class="cm-keyword">[</span><span class="cm-number">1</span><span class="cm-keyword">]</span> <span class="cm-keyword">=</span> <span class="cm-number">7</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">69</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">v</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">70</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-comment"># member access</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">71</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">p</span> <span class="cm-type">Point</span><span class="cm-par">(</span><span class="cm-number">1</span> <span class="cm-number">2</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">72</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">p</span><span class="cm-dot">.</span><span class="cm-normal">x</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">73</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">p</span><span class="cm-dot">.</span><span class="cm-normal">y</span> <span class="cm-keyword">=</span> <span class="cm-number">9</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">74</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">p</span><span class="cm-par">)</span></span></pre></div></div></div></div></div></div><div style="position: absolute; height: 50px; width: 1px; border-bottom: 0px solid transparent; top: 1143px;"></div><div class="CodeMirror-gutters" style="height: 1193px; left: 0px;"><div class="CodeMirror-gutter CodeMirror-linenumbers" style="width: 31px;"></div></div></div></div>
+
+<script>
+document.body.style.background = '#222'
+document.body.style.visibility = 'hidden'
+
+let unload_handler = (e) => {
+    e.preventDefault()
+}
+
+let title = window.location.href.split('/').at(-1)
+
+let codemirror_value = `
+main
+    console.log('hi zekai!')
+`
+let codemirror_fetch = ''
+
+
+        codemirror_value = "\n# operators work just like in js/ts, including their precedence\n\nbool bool bool\nor a b: a || b\n\nbool bool bool\nand a b: a && b\n\nnum num num\nbit_or a b: a | b\n\nnum num num\nbit_xor a b: a ^ b\n\nnum num num\nbit_and a b: a & b\n\n# equality operators are always strict\nnum num bool\neq a b: a == b # transpiles to '===' operator\nnum num bool\nneq a b: a != b # transpiles to '!==' operator\n\n# relational\nnum num bool\ngte a b: a >= b\nnum num bool\ngt a b: a > b\nnum num bool\nlte a b: a <= b\nnum num bool\nlt a b: a < b\n\n# same for bitwise shifts >>> >> <<\n# same for additive and multiplicative operators: + - * / %\n\n# unary\nbool bool\nnot x: !x\nnum num\nbit_not x: ~x\nnum num\nneg x: -x\n\n# there are no prefix increment or decrement ++n --n\n# neither postfix increment or decrement n++ y++\n\n# the next struct is used to show member access operator below\nPoint\n    x num\n    y num\n\nmain\n    # only additive and multiplicative assignments\n    n 0\n    n = 1\n    n += 2\n    n -= 3\n    n *= 4\n    n /= 5\n    n %= 6\n    # function calls\n    console.log(and(true false))\n    # computed member access\n    v [1 2 3]\n    console.log(v[1])\n    v[1] = 7\n    console.log(v)\n    # member access\n    p Point(1 2)\n    console.log(p.x)\n    p.y = 9\n    console.log(p)"
+        codemirror_fetch = 'http://localhost:777/' + "C:/@astor/@zekai/examples/15_operators.z"
+    
+
+codeMirror.setValue(codemirror_value)
+codeMirror.clearHistory()
+codeMirror.on('change', () => {
+    document.title  = '● ' + title
+    window.addEventListener('beforeunload', unload_handler)
+})
+codeMirror.onsave = () => {
+    document.title = title
+    window.removeEventListener('beforeunload', unload_handler)
+    sessionStorage.setItem('history', JSON.stringify(codeMirror.getDoc().getHistory()))
+    let code = codeMirror.getValue()
+    let arraybuf = new TextEncoder().encode(code)
+    if(codemirror_fetch === '') {
+        return
+    }
+    fetch(codemirror_fetch, { method:'post', body:arraybuf })
+}
+
+let history = sessionStorage.getItem('history')
+if(history) {
+    codeMirror.getDoc().setHistory(JSON.parse(history))
+}
+
+document.body.style.visibility = ''
+codeMirror.focus()
+
+let cursor = sessionStorage.getItem('cursor')
+if(cursor) {
+    codeMirror.getDoc().setCursor(JSON.parse(cursor))
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('cursor', JSON.stringify(codeMirror.getDoc().getCursor()))
+}, 50)
+
+let scrollpos = sessionStorage.getItem('scrollpos')
+if(scrollpos) {
+    codeMirror.getScrollerElement().scrollTo(0, scrollpos)
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('scrollpos', codeMirror.getScrollerElement().scrollTop)
+}, 50)
+
+</script>
+
+<script type="module">
+export const or = (a, b) => a || b;
+export const and = (a, b) => a && b;
+export const bit_or = (a, b) => a | b;
+export const bit_xor = (a, b) => a ^ b;
+export const bit_and = (a, b) => a & b;
+export const eq = (a, b) => a === b;
+export const neq = (a, b) => a !== b;
+export const gte = (a, b) => a >= b;
+export const gt = (a, b) => a > b;
+export const lte = (a, b) => a <= b;
+export const lt = (a, b) => a < b;
+export const not = (x) => !x;
+export const bit_not = (x) => ~x;
+export const neg = (x) => -x;
+export class Point {
+    x;
+    y;
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    static struct = (o) => {
+        return new Point(o.x, o.y);
+    };
+}
+export const main = () => {
+    let n = 0;
+    n = 1;
+    n += 2;
+    n -= 3;
+    n *= 4;
+    n /= 5;
+    n %= 6;
+    console.log(and(true, false));
+    let v = [1, 2, 3];
+    console.log(v[1]);
+    v[1] = 7;
+    console.log(v);
+    let p = new Point(1, 2);
+    console.log(p.x);
+    p.y = 9;
+    return console.log(p);
+};
+
+main()
+</script>
+
+
+
+</body></html>
