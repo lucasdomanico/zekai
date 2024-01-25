@@ -433,7 +433,9 @@ let parser = () => {
         return new_ast(ast.tag, ast.text, lines, ast.pos, ast.length, ast.error)
     })
 
-    let func  = R(all([cases([all([token('async'), w]), none]), token('\\'), b, many(all([id, b])), b, maybe(token('\\')), w, cases([block, $(() => assign_expr)])], 'func'), (ast) => {
+    let end_args = cases([token(':'), token('\\')])
+
+    let func  = R(all([cases([all([token('async'), w]), none]), token('\\'), b, many(all([id, b])), b, maybe(end_args), w, cases([block, $(() => assign_expr)])], 'func'), (ast) => {
         let Async = ast.data[0].data[0].tag !== 'none'
         let args = ast.data[3].data.map((a) => a.data[0])
         args.push(ast.data[7].data[0])
@@ -680,28 +682,28 @@ let parser = () => {
 
     /////////////////// merge behavior????? //////////////////////
     
-    let defun_fake_args = R(all([token('\\'), b, many(all([id, b])), b, maybe(token('\\'))]), (ast) => {
-        let args = ast.data[2].data.map((a) => a.data[0])
-        return new_ast('args', '', [args], ast.pos, ast.length, ast.error)
-    })
-    let defun_fake = R(all([defun_types, id, b, maybe(token('async')), b, defun_fake_args, b, cases([block, $(() => assign_expr)])], 'defun'), (ast) => {
-        let types = []
-        if(ast.data[0].data[0].tag === 'none') {
-            types = [new_ast('type', 'void', [], 0, 0, 0)]
-        }
-        else {
-            types = ast.data[0].data[0].data[0].data.map((a) => a.data[0])
-        }
-        let id = ast.data[1].text
-        let Async = ast.data[3].data[0].tag !== 'none'? ' async' : ''
-        let args = ast.data[5].data[0]
-        let lines = ast.data[7].data[0]
-        ast.text = id + Async
-        ast.data = types.concat(args).concat(lines)
-        return ast
-    })
+    // let defun_fake_args = R(all([token('\\'), b, many(all([id, b])), b, maybe(token('\\'))]), (ast) => {
+    //     let args = ast.data[2].data.map((a) => a.data[0])
+    //     return new_ast('args', '', [args], ast.pos, ast.length, ast.error)
+    // })
+    // let defun_fake = R(all([defun_types, id, b, maybe(token('async')), b, defun_fake_args, b, cases([block, $(() => assign_expr)])], 'defun'), (ast) => {
+    //     let types = []
+    //     if(ast.data[0].data[0].tag === 'none') {
+    //         types = [new_ast('type', 'void', [], 0, 0, 0)]
+    //     }
+    //     else {
+    //         types = ast.data[0].data[0].data[0].data.map((a) => a.data[0])
+    //     }
+    //     let id = ast.data[1].text
+    //     let Async = ast.data[3].data[0].tag !== 'none'? ' async' : ''
+    //     let args = ast.data[5].data[0]
+    //     let lines = ast.data[7].data[0]
+    //     ast.text = id + Async
+    //     ast.data = types.concat(args).concat(lines)
+    //     return ast
+    // })
 
-    let defun_inline_args = R(all([many(all([id, b])), b, token('\\')]), (ast) => {
+    let defun_inline_args = R(all([many(all([id, b])), b, end_args]), (ast) => {
         let args = ast.data[0].data.map((a) => a.data[0])
         return new_ast('args', '', [args], ast.pos, ast.length, ast.error)
     })
@@ -722,7 +724,7 @@ let parser = () => {
         return ast
     })
 
-    let defun_args  = R(all([many(all([id, b])), b, maybe(token('\\'))]), (ast) => {
+    let defun_args  = R(all([many(all([id, b])), b, maybe(end_args)]), (ast) => {
         let args = ast.data[0].data.map((a) => a.data[0])
         return new_ast('args', '', [args], ast.pos, ast.length, ast.error)
     })
@@ -763,7 +765,7 @@ let parser = () => {
     ///////////////////////////////////////////////////////////
     // cambiar w for blank (.text is comment)
     ///////////////////////////////////////////////////////////
-    let script = R(all([w, many(all([cases([include, defun_fake, defun_inline, defun, struct, alias, struct_empty, typed_global, global]), w])), w], 'script'), (ast) => {
+    let script = R(all([w, many(all([cases([include, defun_inline, defun, struct, alias, struct_empty, typed_global, global]), w])), w], 'script'), (ast) => {
         let lines = ast.data[1].data.map((a) => a.data[0].data[0])
         return new_ast(ast.tag, ast.text, lines, ast.pos, ast.length, ast.error)
     })
