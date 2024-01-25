@@ -3,7 +3,7 @@
 
 f
     v [1 2 3]
-    v.map(\x\ x * 2) # inline lambda expression
+    v.map(\x: x * 2) # inline lambda expression
 
 # you can also use lambda expressions with a code block/suite as the body
 suite

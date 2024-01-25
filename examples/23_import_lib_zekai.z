@@ -1,6 +1,6 @@
 
 num num num
-div a b\ a / b
+div a b: a / b
 
 main
     0

@@ -52,7 +52,7 @@ my_tuple x
 
 # there are also fun types
 fun(num void) void
-twice f\
+twice f
     f(1)
     f(2)
 
@@ -66,7 +66,7 @@ new_class
     x 0
     Class(
         \\ x # lambda expression, explained later
-        \n\ x = n
+        \n: x = n
     )
 
 # to create a type alias, just start its id with upper case and a type
@@ -83,7 +83,7 @@ main
     my_union(State(7))
     my_tuple([1 'z'])
     n 0
-    twice(\x\ n += x)
+    twice(\x: n += x)
     console.log(n)
     c new_class()
     c.set_x(9)

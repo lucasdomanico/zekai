@@ -119,14 +119,14 @@ forward_fix lines
         forward_fix_line(last line)
 
 fun(num num) fun(num num)
-nested f\ f
+nested f: f
 
 num num num num bool tuple(array(Line) num num num)
 create_segment seed adx ady adz start
     rands random(seed 4)
-    angle_xf nested(\i\ i * rands[0] * 0.4 * (iif random(rands[0] 1)[0] > 0.5 1 -1))
-    angle_yf nested(\i\ i * rands[1] * 0.4 * (iif random(rands[1] 1)[0] > 0.5 1 -1))
-    angle_zf nested(\i\ i * rands[2] * 0.4 * (iif random(rands[2] 1)[0] > 0.5 1 -1))
+    angle_xf nested(\i: i * rands[0] * 0.4 * (iif random(rands[0] 1)[0] > 0.5 1 -1))
+    angle_yf nested(\i: i * rands[1] * 0.4 * (iif random(rands[1] 1)[0] > 0.5 1 -1))
+    angle_zf nested(\i: i * rands[2] * 0.4 * (iif random(rands[2] 1)[0] > 0.5 1 -1))
     lines_length Math.floor((rands[3]) * 12 % 12) + 4
     if start
         angle_xf = \\ 0
