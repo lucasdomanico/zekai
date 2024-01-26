@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<script src="21_for.z_files/codemirror.js"></script>
+<script src="21_for.z_files/simple.js"></script>
+<script src="21_for.z_files/matchbrackets.js"></script>
+<script src="21_for.z_files/closebrackets.js"></script>
+<script src="21_for.z_files/comment.js"></script>
+<script src="21_for.z_files/active-line.js"></script>
+<script src="21_for.z_files/match-highlighter.js"></script>
+<link rel="stylesheet" href="21_for.z_files/codemirror.css">
+<link rel="stylesheet" href="21_for.z_files/index.css">
+<title>21_for.z</title></head>
+
+<body style="margin: 0px; padding: 0px; background: rgb(34, 34, 34);">
+
+<script>
+
+// let keywords = 'async|await|import|ret|if|for|else|iif|instanceof|new|break|continue'
+
+CodeMirror.defineSimpleMode('zekai', {
+    start: [
+
+        { token: "banned",              regex: /^[ ]+(let) /, sol:true },
+
+
+        // list all operators
+        { token: ["normal", "keyword"], regex: /^([ ]+[a-z_][A-Za-z_\d]*) (\=|\+\=|\+|\-|\*|\/|\%)/, sol:true },
+        // ------------------
+
+
+        { token: "keyword",             regex: /^[ ]+(async|await|import|ret|if|for|else|iif|new) /, sol:true },
+        { token: ["normal", "let"],     regex: /^([ ]+)([a-z_][A-Za-z_\d]*) /, sol:true },
+
+        
+        { token: "string",  regex: /'(?:[^\\]|\\.)*?(?:'|$)/ },
+        { token: "number",  regex: /0x[a-f\d]+|[-+]?(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i, },
+        { token: "keyword", regex: /(?:async|await|import|ret|if|for|else|iif|instanceof|new|break|continue)\b/ },
+
+        { token: "keyword", regex: /\&\&/ },
+        { token: "keyword", regex: /\|\|/ },
+        { token: "bitwise", regex: /\|/ },
+        { token: "bitwise", regex: /\^/ },
+        { token: "bitwise", regex: /\&/ },
+        { token: "bitwise", regex: /\<\</ },
+        { token: "bitwise", regex: /\>\>\>/ },
+        { token: "bitwise", regex: /\>\>/ },
+        { token: "bitwise", regex: /\~/ },
+
+        { token: "banned", regex: /(\!\=\=)|(\=\=\=)/ },
+
+        { token: "keyword", regex: /[-+\/*=<>!%\[\]\{\}\:]+/ },
+        { token: "par",     regex: /\@/ },
+        // { token: "keyword", regex: /\||\[|\]/ },
+        // { token: "sad",     regex: /\\:/ },
+        { token: "keyword", regex: /\\/ },
+        { token: "par",     regex: /(?:true|false)\b/ },
+        { token: "std",     regex: /(?:range|clone)\b/ },
+        { token: "par",     regex: /\(|\)/ },
+        { token: "comment", regex: /\#.*/ },
+        { token: "type",    regex: /^[A-Z][A-Za-z$\d]+/ },
+        { token: "type",    regex: /(?:bool|num|number|int|void|fun|str|string|array|union|extends|map|tuple)\b/ },
+        { token: "generic", regex: /^[A-Z]/ },
+        { token: "evil",    regex: /(?:null|undefined|any|typeof|let)\b/ },
+        { token: "banned",  regex: /[\;\?]/ },
+        { token: "comma",   regex: /[\,]/ },
+        { token: "normal",  regex: /^[a-z$][\w$]*/ },
+        { token: "dot",     regex: /\./ },
+        { token: "tab",     regex: /^[ ]+$/, sol:true },
+        { token: "excess",  regex: /^[ ]+$/ },
+    ],
+    meta: {
+        dontIndentStates: ["comment"],
+        lineComment: "#"
+    }
+})
+
+let codeMirror = CodeMirror(document.body, {
+    value: '',
+    mode:  "zekai",
+    lineNumbers: true,
+    indentUnit: 4,
+    indentWithTabs: false,
+    smartIndent: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    styleActiveLine: true,
+
+    // highlightSelectionMatches: {
+    //     showToken: true
+    // },
+
+    highlightSelectionMatches: {
+        minChars: 2,
+        delay: 100,
+        // wordsOnly: true,
+        // annotateScrollbar: false,
+        // showToken: false,
+        // trim: true
+    },
+
+    viewportMargin: 10000, // otherwise browser's find (and replace?) doesn't works
+
+    extraKeys: {
+        Tab: (cm) => {
+            if(cm.getMode().name === 'null') {
+                cm.execCommand('insertTab')
+            }
+            else {
+                if(cm.somethingSelected()) {
+                    cm.execCommand('indentMore')
+                }
+                else {
+                    cm.execCommand('insertSoftTab')
+                }
+            }
+        },
+        Backspace: (cm) => {
+            if(!cm.somethingSelected()) {
+                let cursorsPos = cm.listSelections().map((selection) => selection.anchor)
+                let indentUnit = cm.options.indentUnit
+                let shouldDelChar = false
+                for(let cursorIndex in cursorsPos) {
+                    let cursorPos = cursorsPos[cursorIndex]
+                    let indentation = cm.getStateAfter(cursorPos.line).indented
+                    if(!(indentation !== 0 &&
+                        cursorPos.ch <= indentation &&
+                        cursorPos.ch % indentUnit === 0)) {
+                        shouldDelChar = true;
+                    }
+                }
+                if(!shouldDelChar) {
+                    cm.execCommand('indentLess')
+                }
+                else {
+                    cm.execCommand('delCharBefore')
+                }
+            }
+            else {
+                cm.execCommand('delCharBefore')
+            }
+        },
+        'Shift-Tab': (cm) => cm.execCommand('indentLess'),
+    }
+})
+
+document.title = window.location.href.split('/').at(-1)
+
+if(codeMirror.onsave !== undefined) {
+    alert('error')
+}
+codeMirror.onsave = () => {
+    alert(codeMirror.getValue())
+}
+
+document.onkeydown = function(e) {
+    if(e.ctrlKey && e.which === 83) {
+        e.preventDefault()
+        codeMirror.onsave()
+        return false
+    }
+    if(e.ctrlKey && e.which === 191) {
+        e.preventDefault()
+        codeMirror.toggleComment({ indent:true })
+        return false
+    }
+}
+
+</script><div class="CodeMirror cm-s-default CodeMirror-focused" translate="no"><div style="overflow: hidden; position: relative; width: 3px; height: 0px; top: 4px; left: 48px;"><textarea style="position: absolute; bottom: -1em; padding: 0px; width: 1px; height: 1em; min-height: 1em; outline: none;" wrap="off" autocorrect="off" autocapitalize="none" spellcheck="false" tabindex="0"></textarea></div><div class="CodeMirror-vscrollbar" tabindex="-1" cm-not-content="true" style="width: 18px; visibility: hidden; display: block; bottom: 0px;"><div style="min-width: 1px; height: 667px;"></div></div><div class="CodeMirror-hscrollbar" tabindex="-1" cm-not-content="true" style="height: 18px; visibility: hidden;"><div style="height: 100%; min-height: 1px; width: 0px;"></div></div><div class="CodeMirror-scrollbar-filler" cm-not-content="true"></div><div class="CodeMirror-gutter-filler" cm-not-content="true"></div><div class="CodeMirror-scroll" tabindex="-1" draggable="true"><div class="CodeMirror-sizer" style="margin-left: 32px; margin-bottom: 0px; border-right-width: 50px; min-height: 667px; min-width: 591px; padding-right: 0px; padding-bottom: 0px;"><div style="position: relative; top: 0px;"><div class="CodeMirror-lines" role="presentation"><div style="position: relative; outline: none;" role="presentation"><div class="CodeMirror-measure"><pre class="CodeMirror-line-like"><span>xxxxxxxxxx</span></pre><div class="CodeMirror-linenumber CodeMirror-gutter-elt"><div>43</div></div></div><div class="CodeMirror-measure"></div><div style="position: relative; z-index: 1;"></div><div class="CodeMirror-cursors" style=""><div class="CodeMirror-cursor" style="left: 16px; top: 0px; height: 15.3333px;">&nbsp;</div></div><div class="CodeMirror-code" role="presentation" style=""><div style="position: relative;" class="CodeMirror-activeline"><div class="CodeMirror-activeline-background CodeMirror-linebackground"></div><div class="CodeMirror-gutter-background CodeMirror-activeline-gutter" style="left: -32px; width: 32px;"></div><div class="CodeMirror-gutter-wrapper CodeMirror-activeline-gutter" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">1</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># for statements works like imperative languages</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">2</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># the only differentce is the syntax</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">3</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># it doesn't requires parantheses nor ; operators</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">4</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">5</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">loop</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">6</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-keyword">    for </span><span class="cm-normal">i</span> <span class="cm-number">0</span><span class="cm-comma">,</span> <span class="cm-normal">i</span> <span class="cm-keyword">&lt;</span> <span class="cm-number">10</span><span class="cm-comma">,</span> <span class="cm-normal">i</span> <span class="cm-keyword">+=</span> <span class="cm-number">1</span> <span class="cm-comment"># remember there are not postfix increments in zekai</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">7</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">        <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">i</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">8</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-comment"># commas are optional, but they increase readability</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">9</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-keyword">    for </span><span class="cm-normal">i</span> <span class="cm-number">0</span> <span class="cm-normal">i</span> <span class="cm-keyword">&lt;</span> <span class="cm-number">10</span> <span class="cm-normal">i</span> <span class="cm-keyword">+=</span> <span class="cm-number">1</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">10</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">        <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">i</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">11</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">12</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># you can omit the increment expression</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">13</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">loopy</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">14</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-keyword">    for </span><span class="cm-normal">i</span> <span class="cm-number">0</span><span class="cm-comma">,</span> <span class="cm-normal">i</span> <span class="cm-keyword">&lt;</span> <span class="cm-number">10</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">15</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">        <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">i</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">16</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">        i</span><span class="cm-keyword"> +=</span> <span class="cm-number">1</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">17</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">18</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># you can also omit the conditional expression</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">19</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">loopz</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">20</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-keyword">    for </span><span class="cm-normal">i</span> <span class="cm-number">0</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">21</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-keyword">        if </span><span class="cm-normal">i</span> <span class="cm-keyword">&gt;=</span> <span class="cm-number">10</span> <span class="cm-keyword">break</span> <span class="cm-comment"># break continue and ret/return works as expected</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">22</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">        <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">i</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">23</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">        i</span><span class="cm-keyword"> +=</span> <span class="cm-number">1</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">24</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">25</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># it is also possible to omit the let expression</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">26</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">loopx</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">27</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">    </span><span class="cm-let">i</span> <span class="cm-number">0</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">28</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-keyword">for</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">29</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-keyword">        if </span><span class="cm-normal">i</span> <span class="cm-keyword">&gt;=</span> <span class="cm-number">10</span> <span class="cm-keyword">break</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">30</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">        <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-normal">i</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">31</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">        i</span><span class="cm-keyword"> +=</span> <span class="cm-number">1</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">32</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">33</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-comment"># there are not for in in zekai, use the forEach function </span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">34</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span cm-text="">​</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">35</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation"><span class="cm-normal">main</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">36</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-string">'loop'</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">37</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">loop</span><span class="cm-par">()</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">38</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-string">'loopy'</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">39</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">loopy</span><span class="cm-par">()</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">40</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-string">'loopz'</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">41</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">loopz</span><span class="cm-par">()</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">42</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">console</span><span class="cm-dot">.</span><span class="cm-normal">log</span><span class="cm-par">(</span><span class="cm-string">'loopx'</span><span class="cm-par">)</span></span></pre></div><div style="position: relative;"><div class="CodeMirror-gutter-wrapper" style="left: -32px;" aria-hidden="true"><div class="CodeMirror-linenumber CodeMirror-gutter-elt" style="left: 0px; width: 21px;">43</div></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation">    <span class="cm-normal">loopx</span><span class="cm-par">()</span></span></pre></div></div></div></div></div></div><div style="position: absolute; height: 50px; width: 1px; border-bottom: 0px solid transparent; top: 667px;"></div><div class="CodeMirror-gutters" style="height: 717px; left: 0px;"><div class="CodeMirror-gutter CodeMirror-linenumbers" style="width: 31px;"></div></div></div></div>
+
+<script>
+document.body.style.background = '#222'
+document.body.style.visibility = 'hidden'
+
+let unload_handler = (e) => {
+    e.preventDefault()
+}
+
+let title = window.location.href.split('/').at(-1)
+
+let codemirror_value = `
+main
+    console.log('hi zekai!')
+`
+let codemirror_fetch = ''
+
+
+        codemirror_value = "# for statements works like imperative languages\n# the only differentce is the syntax\n# it doesn't requires parantheses nor ; operators\n\nloop\n    for i 0, i < 10, i += 1 # remember there are not postfix increments in zekai\n        console.log(i)\n    # commas are optional, but they increase readability\n    for i 0 i < 10 i += 1\n        console.log(i)\n\n# you can omit the increment expression\nloopy\n    for i 0, i < 10\n        console.log(i)\n        i += 1\n\n# you can also omit the conditional expression\nloopz\n    for i 0\n        if i >= 10 break # break continue and ret/return works as expected\n        console.log(i)\n        i += 1\n\n# it is also possible to omit the let expression\nloopx\n    i 0\n    for\n        if i >= 10 break\n        console.log(i)\n        i += 1\n\n# there are not for in in zekai, use the forEach function \n\nmain\n    console.log('loop')\n    loop()\n    console.log('loopy')\n    loopy()\n    console.log('loopz')\n    loopz()\n    console.log('loopx')\n    loopx()"
+        codemirror_fetch = 'http://localhost:777/' + "C:/@astor/@zekai/examples/21_for.z"
+    
+
+codeMirror.setValue(codemirror_value)
+codeMirror.clearHistory()
+codeMirror.on('change', () => {
+    document.title  = '● ' + title
+    window.addEventListener('beforeunload', unload_handler)
+})
+codeMirror.onsave = () => {
+    document.title = title
+    window.removeEventListener('beforeunload', unload_handler)
+    sessionStorage.setItem('history', JSON.stringify(codeMirror.getDoc().getHistory()))
+    let code = codeMirror.getValue()
+    let arraybuf = new TextEncoder().encode(code)
+    if(codemirror_fetch === '') {
+        return
+    }
+    fetch(codemirror_fetch, { method:'post', body:arraybuf })
+}
+
+let history = sessionStorage.getItem('history')
+if(history) {
+    codeMirror.getDoc().setHistory(JSON.parse(history))
+}
+
+document.body.style.visibility = ''
+codeMirror.focus()
+
+let cursor = sessionStorage.getItem('cursor')
+if(cursor) {
+    codeMirror.getDoc().setCursor(JSON.parse(cursor))
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('cursor', JSON.stringify(codeMirror.getDoc().getCursor()))
+}, 50)
+
+let scrollpos = sessionStorage.getItem('scrollpos')
+if(scrollpos) {
+    codeMirror.getScrollerElement().scrollTo(0, scrollpos)
+}            
+setInterval(function(e) {
+    sessionStorage.setItem('scrollpos', codeMirror.getScrollerElement().scrollTop)
+}, 50)
+
+</script>
+
+<script type="module">
+export const loop = () => {
+    for (let i = 0; i < 10; i += 1) {
+        console.log(i);
+    }
+    for (let i = 0; i < 10; i += 1) {
+        console.log(i);
+    }
+};
+export const loopy = () => {
+    for (let i = 0; i < 10;) {
+        console.log(i);
+        i += 1;
+    }
+};
+export const loopz = () => {
+    for (let i = 0;;) {
+        if (i >= 10)
+            break;
+        console.log(i);
+        i += 1;
+    }
+};
+export const loopx = () => {
+    let i = 0;
+    for (;;) {
+        if (i >= 10)
+            break;
+        console.log(i);
+        i += 1;
+    }
+};
+export const main = () => {
+    console.log('loop');
+    loop();
+    console.log('loopy');
+    loopy();
+    console.log('loopz');
+    loopz();
+    console.log('loopx');
+    return loopx();
+};
+
+main()
+</script>
+
+
+
+</body></html>
