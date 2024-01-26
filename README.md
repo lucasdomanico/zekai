@@ -15,7 +15,8 @@ main
 Check the files in the `examples` folder with either your favorite editor or with zekai editor
 for syntax highlighting.
 
-If you are in a hurry, you can view them online with syntax highlighting (disable Dark Reader)
+If you are in a hurry, you can view them online with syntax highlighting.\
+Open the console to see the output (and disable Dark Reader if you are using it)
 
 - [`globals`](   https://lucasdomanico.github.io/zekai/example.html?example=11_globals.z)
 - [`let`](       https://lucasdomanico.github.io/zekai/example.html?example=12_let.z)
