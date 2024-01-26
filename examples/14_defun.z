@@ -9,7 +9,7 @@ add a b
 
 # you can also define the body inline
 number number number
-mul a b: a * b
+mul a b = a * b
 
 # a function without arguments that doesn't return anyhing
 void

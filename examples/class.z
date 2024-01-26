@@ -10,8 +10,8 @@ vec3 x y z
     @Vec3
     v Vec3(
         x, y, z
-        \b: vec3(v.x + b.x, v.y + b.y, v.z + b.z)
-        \b: vec3(v.x - b.x, v.y - b.y, v.z - b.z)
+        \b\ vec3(v.x + b.x, v.y + b.y, v.z + b.z)
+        \b\ vec3(v.x - b.x, v.y - b.y, v.z - b.z)
     )
     v
 

@@ -392,9 +392,9 @@ let parser = () => {
 
     let line = [Break, Continue, $(() => If), Return, $(() => For), typed_let, Let, $(() => assign_expr)]
 
-    let Else = R(all([token('else'), w, maybe($(() => end_args)), w, cases([$(() => block)].concat(line))]), (ast) => {
+    let Else = R(all([token('else'), w, cases([$(() => block)].concat(line))]), (ast) => {
         // throw ast
-        return new_ast(ast.tag, ast.text, [ast.data[4].data[0]], ast.pos, ast.length, ast.error)
+        return new_ast(ast.tag, ast.text, [ast.data[2].data[0]], ast.pos, ast.length, ast.error)
     })
     // let If = R(all([token('if'), w, token('('), w, $(() => expr), w, token(')'), w, cases([$(() => block)].concat(line)), w, cases([Else, none])], 'if'), (ast) => {
     //     let cond = ast.data[4]
@@ -402,19 +402,19 @@ let parser = () => {
     //     let els = ast.data[10].data[0].tag === 'none'? [] : [ast.data[10].data[0].data[0]]
     //     return new_ast(ast.tag, ast.text, [cond, body].concat(els), ast.pos, ast.length, ast.error)
     // })
-    let If = R(all([token('if'), w, $(() => expr), w, maybe($(() => end_args)), w, cases([$(() => block)].concat(line)), w, cases([Else, none])], 'if'), (ast) => {
+    let If = R(all([token('if'), w, $(() => expr), w, cases([$(() => block)].concat(line)), w, cases([Else, none])], 'if'), (ast) => {
         let cond = ast.data[2]
-        let body = ast.data[6].data[0]
-        let els = ast.data[8].data[0].tag === 'none'? [] : [ast.data[8].data[0].data[0]]
+        let body = ast.data[4].data[0]
+        let els = ast.data[6].data[0].tag === 'none'? [] : [ast.data[6].data[0].data[0]]
         return new_ast(ast.tag, ast.text, [cond, body].concat(els), ast.pos, ast.length, ast.error)
     })
 
 
     // let For = R(all([token('for'), w, token('('), w, cases([Let, none]), w, token(';'), w, cases([$(() => expr), none]), w, token(';'), w, cases([increment, decrement, $(() => assign_expr), none]), w, token(')'), w, cases([$(() => block)].concat(line))], 'for'), (ast) => {
     // let For = R(all([token('for'), w, token('('), b, cases([Let, none]), b, token(';'), b, cases([$(() => expr), none]), b, token(';'), b, cases([$(() => assign_expr), none]), b, token(')'), w, cases([$(() => block)].concat(line))], 'for'), (ast) => {
-    let For = R(all([token('for'), b, cases([Let, none]), b, cases([$(() => expr), none]), b, cases([$(() => assign_expr), none]), w, maybe($(() => end_args)), w, cases([$(() => block)].concat(line))], 'for'), (ast) => {
+    let For = R(all([token('for'), b, cases([Let, none]), b, cases([$(() => expr), none]), b, cases([$(() => assign_expr), none]), w, cases([$(() => block)].concat(line))], 'for'), (ast) => {
         let asts = [
-            ast.data[2].data[0], ast.data[4].data[0], ast.data[6].data[0], ast.data[10].data[0]
+            ast.data[2].data[0], ast.data[4].data[0], ast.data[6].data[0], ast.data[8].data[0]
         ]
         return new_ast(ast.tag, ast.text, asts, ast.pos, ast.length, ast.error)
     })
@@ -433,9 +433,9 @@ let parser = () => {
         return new_ast(ast.tag, ast.text, lines, ast.pos, ast.length, ast.error)
     })
 
-    let end_args = cases([token(':'), token('\\')])
+    // let end_args = cases([token(':'), token('\\')])
 
-    let func  = R(all([cases([all([token('async'), w]), none]), token('\\'), b, many(all([id, b])), b, maybe(end_args), w, cases([block, $(() => assign_expr)])], 'func'), (ast) => {
+    let func  = R(all([cases([all([token('async'), w]), none]), token('\\'), b, many(all([id, b])), b, maybe(token('\\')), w, cases([block, $(() => assign_expr)])], 'func'), (ast) => {
         let Async = ast.data[0].data[0].tag !== 'none'
         let args = ast.data[3].data.map((a) => a.data[0])
         args.push(ast.data[7].data[0])
@@ -703,7 +703,7 @@ let parser = () => {
     //     return ast
     // })
 
-    let defun_inline_args = R(all([many(all([id, b])), b, end_args]), (ast) => {
+    let defun_inline_args = R(all([many(all([id, b])), b, token('=')]), (ast) => {
         let args = ast.data[0].data.map((a) => a.data[0])
         return new_ast('args', '', [args], ast.pos, ast.length, ast.error)
     })
@@ -724,7 +724,7 @@ let parser = () => {
         return ast
     })
 
-    let defun_args  = R(all([many(all([id, b])), b, maybe(end_args)]), (ast) => {
+    let defun_args  = R(all([many(all([id, b])), b, maybe(token('='))]), (ast) => {
         let args = ast.data[0].data.map((a) => a.data[0])
         return new_ast('args', '', [args], ast.pos, ast.length, ast.error)
     })

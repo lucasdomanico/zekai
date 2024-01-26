@@ -1,14 +1,7 @@
 export type f = () => void
 export const f:f = () => {
     let v = [1, 2, 3]
-    let q = v.map((x) => x * 2)
-    return q.map((x) => x * 2)
-}
-
-export type sad = () => void
-export const sad:sad = () => {
-    () => 0
-    return () => 0
+    return v.map((x) => x * 2)
 }
 
 export type suite = () => void
@@ -52,7 +45,6 @@ export let sub:($0:number, $1:number) => number = (a, b) => a - b
 export type main = () => void
 export const main:main = () => {
     console.log(f())
-    console.log(sad())
     console.log(suite())
     wait()
     console.log(add(1, 2))

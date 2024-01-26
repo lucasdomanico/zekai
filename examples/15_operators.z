@@ -2,46 +2,46 @@
 # operators work just like in js/ts, including their precedence
 
 bool bool bool
-or a b: a || b
+or a b = a || b
 
 bool bool bool
-and a b: a && b
+and a b = a && b
 
 num num num
-bit_or a b: a | b
+bit_or a b = a | b
 
 num num num
-bit_xor a b: a ^ b
+bit_xor a b = a ^ b
 
 num num num
-bit_and a b: a & b
+bit_and a b = a & b
 
 # equality operators are always strict
 num num bool
-eq a b: a == b # transpiles to '===' operator
+eq a b = a == b # transpiles to '===' operator
 num num bool
-neq a b: a != b # transpiles to '!==' operator
+neq a b = a != b # transpiles to '!==' operator
 
 # relational
 num num bool
-gte a b: a >= b
+gte a b = a >= b
 num num bool
-gt a b: a > b
+gt a b = a > b
 num num bool
-lte a b: a <= b
+lte a b = a <= b
 num num bool
-lt a b: a < b
+lt a b = a < b
 
 # same for bitwise shifts >>> >> <<
 # same for additive and multiplicative operators: + - * / %
 
 # unary
 bool bool
-not x: !x
+not x = !x
 num num
-bit_not x: ~x
+bit_not x = ~x
 num num
-neg x: -x
+neg x = -x
 
 # there are no prefix increment or decrement ++n --n
 # neither postfix increment or decrement n++ y++
