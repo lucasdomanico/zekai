@@ -14,6 +14,22 @@ export const f = () => {
     2;
     return 3;
 };
+export class Foo {
+    x;
+    y;
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    static struct = (o) => {
+        return new Foo(o.x, o.y);
+    };
+}
+export const q = () => {
+    1;
+    2;
+    return 3;
+};
 export const test = (b) => {
     if (b) {
         let n = 2;

@@ -1,0 +1,6 @@
+
+macro \_\ \s i
+    kitty _.combo(_.token('%kitty%') \ast
+        _.ast('string' "'hello kitty n!'" [] ast.pos ast.length ast.error)
+    )
+    kitty(s i)

@@ -13,6 +13,21 @@ export const f:f = () => {
     return 3
 }
 
+export class Foo { constructor(
+    public x:number,
+    public y:number) {}
+    static struct = (o:{ x:number, y:number }) => {
+        return new Foo(o.x, o.y)
+    }
+}
+
+export type q = () => void
+export const q:q = () => {
+    1
+    2
+    return 3
+}
+
 export type test = (b:boolean) => void
 export const test:test = (b) => {
     if(b) {

@@ -139,6 +139,18 @@ let regex = (re, tag = "") => { // too slow
     }
 }
 
+// let multi_regex = (re, tag = "") => { // too slow
+//     return (s, i) => {
+//         let e = s.substr(i).match(RegExp(re, 'm'))
+//         if(e) {
+//             let r = e[0]
+//             return ast(tag, r, [], i, r.length, i)
+//         }
+//         return fail(i, i, tag)
+//     }
+// }
+
+
 // let lazy = (rule:() => rule):rule => { // forward definitions
 //     return (s:string, i:number) => {
 let lazy = (rule) => { // forward definitions
@@ -165,7 +177,7 @@ let whitespace = (s, i) => {
     for(;;) {
         if(i >= s.length) break
         let c = s.charAt(i)
-        if(c === ' ' || c === '\t' || c === '\r' || c === '\n' || c === ',') {
+        if(c === ' ' || c === '\t' || c === '\r' || c === '\n' || c === ',' || c === ';') {
             i++
             continue
         }
@@ -173,9 +185,9 @@ let whitespace = (s, i) => {
             i += 1
             for(;;) {
                 if(i >= s.length) break
-                if(s[i] === '{' && s[i + 1] === '{') break
-                if(s.charAt(i) === '\r' && s.charAt(i) === '\n') { i += 2; break }
-                if(s.charAt(i) === '\n' && s.charAt(i) === '\r') { i += 2; break }
+                // if(s[i] === '{' && s[i + 1] === '{') break
+                // if(s.charAt(i) === '\r' && s.charAt(i) === '\n') { i += 2; break }
+                // if(s.charAt(i) === '\n' && s.charAt(i) === '\r') { i += 2; break }
                 if(s.charAt(i) === '\n') { i += 1; break }
                 i++
             }
@@ -190,7 +202,7 @@ let blankspace = (s, i) => {
     for(;;) {
         if(i >= s.length) break
         let c = s.charAt(i)
-        if(c === ' ' || c === '\t' || c === ',') {
+        if(c === ' ' || c === '\t' || c === ',' || c === ';') {
             i++
             continue
         }
@@ -198,7 +210,7 @@ let blankspace = (s, i) => {
             i += 1
             for(;;) {
                 if(i >= s.length) break
-                if(s[i] === '{' && s[i + 1] === '{') break
+                // if(s[i] === '{' && s[i + 1] === '{') break
                 if(s.charAt(i) === '\r' || s.charAt(i) === '\n') break
                 i++
             }
@@ -209,7 +221,64 @@ let blankspace = (s, i) => {
     return new_ast('b', '', [], pos, i - pos, pos)
 }
 
-let parser = () => {
+let blankspace_nocomment = (s, i) => {
+    let pos = i
+    for(;;) {
+        if(i >= s.length) break
+        let c = s.charAt(i)
+        if(c === ' ' || c === '\t' || c === ',' || c === ';') {
+            i++
+            continue
+        }
+        break
+    }
+    if(i === pos) return fail(pos, pos, '')
+    return new_ast('b', s.substring(pos, pos + (i - pos)), [], pos, i - pos, pos)
+}
+
+
+let eof = (s, i) => {
+    // console.error('eof', i >= s.length)
+    if(i >= s.length) return new_ast('', '', [], i, 0, i)
+    return fail(i, i, '')
+}
+
+let suite = (casesv, tag = '') => {
+    return (s, i) => {
+        let w = whitespace
+        let braces = all([w, token('{'), w, many(all([cases(casesv), w])), w, token('}')])(s, i)
+        if(!isfail(braces)) {
+            let data = braces.data[3].data.map((ast) => ast.data[0].data[0])
+            return new_ast(tag, '', data, braces.pos, braces.length, braces.error)
+        }
+        // suite
+        let pos = i
+        let ast = all([blankspace, token('\n'), blankspace_nocomment])(s, i)
+        if(isfail(ast)) return ast
+        let indent = ast.data[2].text
+        i += ast.length - indent.length
+        let data = []
+        for(;;) {
+            let line = all([blankspace_nocomment, maybe(cases(casesv)), blankspace, cases([token('\n'), eof])])(s, i)
+            if(isfail(line) || line.data[0].text !== indent) {
+                // if(s[i] === '\n') i += -1
+                if(s[i - 1] === '\n') {
+                    i += -1
+                }
+                return new_ast(tag, '', data, pos, i - pos, pos)
+            }
+            i += line.length
+            if(line.data[1].data[0].tag !== 'none') {
+                data.push(line.data[1].data[0].data[0])
+            }
+        }
+    }
+}
+
+let none = (s, i) => ast('none', '', [], i, 0, 0)
+let maybe = (rule) => cases([rule, none])
+
+let parser = (macros) => {
     let $ = lazy
     let R = (rule, then) => { // returns rule
         return (s, i) => {
@@ -222,8 +291,6 @@ let parser = () => {
             return then(ast)
         }
     }
-    let none = (s, i) => ast('none', '', [], i, 0, 0)
-    let maybe = (rule) => cases([rule, none])
     // let w       = regex("^([ \\t\\r\\n,])*", 'ws')
     // let b       = regex("^([ \\t\\r])*", 'b')
     let w       = whitespace
@@ -233,9 +300,26 @@ let parser = () => {
 
     let $id      = regex('^[\\$a-z_][\\$A-Za-z_\\d]*', 'id')
     let uid      = regex('^[\\A-Z][\\A-Za-z_\\d]+', 'uid')
-    let tid      = regex('^[\\$A-Za-z_][\\$A-Za-z_\\d]*', 'tid')
+    let $tid      = regex('^[\\$A-Za-z_][\\$A-Za-z_\\d]*', 'tid')
     let $ref     = regex('^[\\$A-Za-z_][\\$A-Za-z_\\d]*', 'ref')
     let $gid      = regex('^[\\A-Z]', 'gid') // generics id
+
+    let tid = (s, i) => {
+        let ast = $tid(s, i)
+        if(isfail(ast)) return ast
+        if(ast.text[0] === ast.text[0].toUpperCase()) {
+            return ast
+        }
+        let types = [
+            'void', 'bool', 'boolean', 'num', 'number', 'str', 'string',
+            'int',
+            'array', 'map',
+            'tuple', 'extends', 'union',
+            'fun', 'any'
+        ]
+        if(types.includes(ast.text)) return ast
+        return fail(ast.pos, ast.error, '')
+    }
 
     let gid = (s, i) => {
         let ast = $gid(s, i)
@@ -273,6 +357,8 @@ let parser = () => {
     // let False   = token('false', 'bool')
     let number  = R(regex("^(-?)((0[xX][0-9a-fA-F]+)|(\\d+(\\.\\d+)?))", 'number'), (ast) => ast)
     let string  = R(regex("^([\"'])((\\\\(\\1|\\\\))|.)*?\\1", 'string'), (ast) => ast)
+    let multistr = regex("^'''((.|\n|\r)*?)'''", 'multistr')
+
     // let array   = R(all([token('['), w, many(all([$(() => expr), w])), w, token(']')], 'array'), (ast) => ast.data[2])
 
     let untyped_array = R(all([token('['), w, many(all([$(() => expr), w])), w, token(']')], 'untyped_array'), (ast) => {
@@ -280,16 +366,11 @@ let parser = () => {
         return new_ast(ast.tag, ast.text, asts, ast.pos, ast.length, ast.error)
         // return new_ast(ast.pos, ast.length, ast.error, ast.tag, [ast.data[2]], ast.text)
     })
-    let untyped_array_suite = R(all([token('['), w, $(() => suite([$(() => expr)])), w, token(']')], 'untyped_array'), (ast) => {
-        // console.error(ast.data[2].data)
-        return new_ast(ast.tag, ast.text, ast.data[2].data, ast.pos, ast.length, ast.error)
-        // return new_ast(ast.pos, ast.length, ast.error, ast.tag, [ast.data[2]], ast.text)
-    })
     let typed_array = R(all([token('array('),  $(() => type), token(')')], 'typed_array'), (ast) => {
         return new_ast(ast.tag, '', [ast.data[1]], ast.pos, ast.length, ast.error)
         // return new_ast(ast.pos, ast.length, ast.error, ast.tag, [ast.data[2]], ast.text)
     })
-    let array   = R(cases([typed_array, untyped_array, untyped_array_suite]), (ast) => {
+    let array   = R(cases([typed_array, untyped_array]), (ast) => {
         return ast.data[0]
     })
 
@@ -305,16 +386,6 @@ let parser = () => {
             v.push(member[1])
         })
         ast.data = v
-        return ast
-    })
-    let object_suite = R(all([token('{'), w, $(() => suite([member])), w, token('}')], 'object'), (ast) => {
-        let members = []
-        ast.data[2].data.map((a) => {
-            members.push(a.data[0])
-            members.push(a.data[1])
-        })
-        ast.data = members
-        // console.error(ast)
         return ast
     })
 
@@ -392,7 +463,7 @@ let parser = () => {
 
     let line = [Break, Continue, $(() => If), Return, $(() => For), typed_let, Let, $(() => assign_expr)]
 
-    let Else = R(all([token('else'), w, cases([$(() => block)].concat(line))]), (ast) => {
+    let Else = R(all([token('else'), b, cases([$(() => block)].concat(line))]), (ast) => {
         // throw ast
         return new_ast(ast.tag, ast.text, [ast.data[2].data[0]], ast.pos, ast.length, ast.error)
     })
@@ -402,17 +473,19 @@ let parser = () => {
     //     let els = ast.data[10].data[0].tag === 'none'? [] : [ast.data[10].data[0].data[0]]
     //     return new_ast(ast.tag, ast.text, [cond, body].concat(els), ast.pos, ast.length, ast.error)
     // })
-    let If = R(all([token('if'), w, $(() => expr), w, cases([$(() => block)].concat(line)), w, cases([Else, none])], 'if'), (ast) => {
+    let If = R(all([token('if'), w, $(() => expr), b, cases([$(() => block)].concat(line)), cases([all([w, Else]), none])], 'if'), (ast) => {
         let cond = ast.data[2]
         let body = ast.data[4].data[0]
-        let els = ast.data[6].data[0].tag === 'none'? [] : [ast.data[6].data[0].data[0]]
+        let els = ast.data[5].data[0].tag === 'none'? [] : [ast.data[5].data[0].data[1].data[0]]
+        // console.error(ast.data[5].data[0].data[1].data[0])
+        // let els = []
         return new_ast(ast.tag, ast.text, [cond, body].concat(els), ast.pos, ast.length, ast.error)
     })
 
 
     // let For = R(all([token('for'), w, token('('), w, cases([Let, none]), w, token(';'), w, cases([$(() => expr), none]), w, token(';'), w, cases([increment, decrement, $(() => assign_expr), none]), w, token(')'), w, cases([$(() => block)].concat(line))], 'for'), (ast) => {
     // let For = R(all([token('for'), w, token('('), b, cases([Let, none]), b, token(';'), b, cases([$(() => expr), none]), b, token(';'), b, cases([$(() => assign_expr), none]), b, token(')'), w, cases([$(() => block)].concat(line))], 'for'), (ast) => {
-    let For = R(all([token('for'), b, cases([Let, none]), b, cases([$(() => expr), none]), b, cases([$(() => assign_expr), none]), w, cases([$(() => block)].concat(line))], 'for'), (ast) => {
+    let For = R(all([token('for'), b, cases([Let, none]), b, cases([$(() => expr), none]), b, cases([$(() => assign_expr), none]), b, cases([$(() => block)].concat(line))], 'for'), (ast) => {
         let asts = [
             ast.data[2].data[0], ast.data[4].data[0], ast.data[6].data[0], ast.data[8].data[0]
         ]
@@ -420,22 +493,20 @@ let parser = () => {
     })
 
 
-
-    // let suite = ($cases) => R(all([token('{{'), w, many(all([cases($cases), w])), w, token('}}')], 'block'), (ast) => {
+    // let block  = R(all([token('{{'), w, many(all([cases(line), w])), w, token('}}')], 'block'), (ast) => {
     //     let lines = ast.data[2].data.map((a) => a.data[0].data[0])
     //     return new_ast(ast.tag, ast.text, lines, ast.pos, ast.length, ast.error)
     // })
 
-
-
-    let block  = R(all([token('{{'), w, many(all([cases(line), w])), w, token('}}')], 'block'), (ast) => {
-        let lines = ast.data[2].data.map((a) => a.data[0].data[0])
+    let block  = R(suite(line, 'block'), (ast) => {
+        // console.error(ast)
+        let lines = ast.data
         return new_ast(ast.tag, ast.text, lines, ast.pos, ast.length, ast.error)
     })
 
     // let end_args = cases([token(':'), token('\\')])
 
-    let func  = R(all([cases([all([token('async'), w]), none]), token('\\'), b, many(all([id, b])), b, maybe(token('\\')), w, cases([block, $(() => assign_expr)])], 'func'), (ast) => {
+    let func  = R(all([cases([all([token('async'), w]), none]), token('\\'), b, many(all([id, b])), b, maybe(token('\\')), b, cases([block, $(() => assign_expr)])], 'func'), (ast) => {
         let Async = ast.data[0].data[0].tag !== 'none'
         let args = ast.data[3].data.map((a) => a.data[0])
         args.push(ast.data[7].data[0])
@@ -451,7 +522,7 @@ let parser = () => {
     })
 
     // let literal = R(cases([func, par, array, typed_map, object, string, number, ref]), (ast) => {
-    let literal = R(cases([func, par, array, typed_map, Extends, string, object_suite, object, number, ref]), (ast) => {
+    let literal = R(cases([func, par, array, typed_map, Extends, multistr, string, object, number, ref]), (ast) => {
         return ast.data[0]
     })
 
@@ -534,11 +605,8 @@ let parser = () => {
         return new_ast(ast.tag, ast.text, data, ast.pos, ast.length, ast.error)
     })
 
-    let call_suite = R(all([token('('), w, $(() => suite([expr])), w, token(')')], 'call'), (ast) => {
-        return new_ast(ast.tag, ast.text, ast.data[2].data, ast.pos, ast.length, ast.error)
-    })
 
-    let call = R(cases([call_inline, call_suite]), (ast) => {
+    let call = R(cases([call_inline]), (ast) => {
         return ast.data[0]
     })
 
@@ -607,14 +675,58 @@ let parser = () => {
         return new_ast('iif', '', data, ast.pos, ast.length, ast.error)
     })
 
-    let expr = iif
+
+    // let replace_calls = (data, ref) => {
+    //     for(let i = 0; i < data.length; i++) {
+    //         let ast = data[i]
+    //         if(ast.tag === 'call') {
+    //             let f = ast.data[0]
+    //             if(f.tag === 'ref' && f.text[0] === f.text[0].toUpperCase()) {
+    //                 // constructor
+    //             }
+    //             else {
+    //                 let v = new_ast('do_array', '', ast.data.slice(1), f.pos, f.length, f.error)
+    //                 let call = new_ast('ref', ref, [], f.pos, f.length, f.error)
+    //                 ast.data = [call, f].concat(v)
+    //             }
+    //         }
+    //         replace_calls(ast.data, ref)
+    //     }
+    // }
+    // let Do = R(cases([all([token('do'), w, ref, b, block], 'do'), iif]), (ast) => {
+    //     if(ast.data[0].tag !== 'do') return ast.data[0]
+    //     ast = ast.data[0]
+    //     let ref = ast.data[2].text
+    //     replace_calls(ast.data[4].data, ref)
+    //     ast.data = ast.data[4].data
+    //     // console.error(ast)
+    //     ast.tag = 'block'
+    //     return ast
+    // })
+
+    let macro_context = {
+        expr: $(() => expr),
+        combo: R,
+        all, cases, many,
+        ast: new_ast,
+        isfail, fail,
+        w, b,
+        token, regex,
+        maybe, none,
+        atleast
+    }
+    let macro = R(cases([macros(macro_context), iif]), (ast) => {
+        return ast.data[0]
+    })
+
+    let expr = macro
 
 
     /////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////
     let generics = R(all([token('('), b, many(all([$(() => type), b])), b, token(')')], 'type'), (ast) => {
         return ast
-    })    
+    })
     let type  = R(all([tid, maybe(generics)], 'type'), (ast) => {
         let generics = []
         if(ast.data[1].data[0].tag !== 'none') {
@@ -624,11 +736,6 @@ let parser = () => {
         ast.data = generics
         return ast
     })    
-    let suite = ($cases) => R(all([token('{{'), w, many(all([cases($cases), w])), w, token('}}')], 'suite'), (ast) => {
-        let lines = ast.data[2].data.map((a) => a.data[0].data[0])
-        return new_ast(ast.tag, ast.text, lines, ast.pos, ast.length, ast.error)
-    })
-
 
     let struct_field  = R(all([id, b, type]), (ast) => {
         ast.text = ast.data[0].text
@@ -680,34 +787,14 @@ let parser = () => {
 
     let defun_types = maybe(all([many(all([type, b])), token('\n')]))
 
-    /////////////////// merge behavior????? //////////////////////
-    
-    // let defun_fake_args = R(all([token('\\'), b, many(all([id, b])), b, maybe(token('\\'))]), (ast) => {
-    //     let args = ast.data[2].data.map((a) => a.data[0])
-    //     return new_ast('args', '', [args], ast.pos, ast.length, ast.error)
-    // })
-    // let defun_fake = R(all([defun_types, id, b, maybe(token('async')), b, defun_fake_args, b, cases([block, $(() => assign_expr)])], 'defun'), (ast) => {
-    //     let types = []
-    //     if(ast.data[0].data[0].tag === 'none') {
-    //         types = [new_ast('type', 'void', [], 0, 0, 0)]
-    //     }
-    //     else {
-    //         types = ast.data[0].data[0].data[0].data.map((a) => a.data[0])
-    //     }
-    //     let id = ast.data[1].text
-    //     let Async = ast.data[3].data[0].tag !== 'none'? ' async' : ''
-    //     let args = ast.data[5].data[0]
-    //     let lines = ast.data[7].data[0]
-    //     ast.text = id + Async
-    //     ast.data = types.concat(args).concat(lines)
-    //     return ast
-    // })
+    // let do_type = all([token('do('), tid, token(')'), b, token('\n')])
+
 
     let defun_inline_args = R(all([many(all([id, b])), b, token('=')]), (ast) => {
         let args = ast.data[0].data.map((a) => a.data[0])
         return new_ast('args', '', [args], ast.pos, ast.length, ast.error)
     })
-    let defun_inline = R(all([defun_types, id, b, maybe(token('async')), b, defun_inline_args, b, $(() => assign_expr)], 'defun'), (ast) => {
+    let defun_inline = R(all([defun_types, id, b, maybe(token('async')), b, defun_inline_args, b, $(() => assign_expr)], 'defun'), (ast) => {        
         let types = []
         if(ast.data[0].data[0].tag === 'none') {
             types = [new_ast('type', 'void', [], 0, 0, 0)]
@@ -730,6 +817,7 @@ let parser = () => {
     })
 
     let defun  = R(all([defun_types, id, b, maybe(token('async')), b, defun_args, b, block], 'defun'), (ast) => {
+        // console.error('boom')
         let types = []
         if(ast.data[0].data[0].tag === 'none') {
             types = [new_ast('type', 'void', [], 0, 0, 0)]
@@ -809,7 +897,7 @@ let detype = (type, scope_generics = []) => {
     if(id === 'int')  id = 'number'
     if(id === 'bool') id = 'boolean'
     if(id === 'str')  id = 'string'
-    if(id === 'fun' || id === 'fn') {
+    if(id === 'fun') {
         if(args.length === 0) return '() => void'
 
         // let generics = extract_generics(type.data)
@@ -1013,10 +1101,13 @@ let decompile_main = (ast, types) => {
     if(use_extends(ast)) {
         lib = $extends + '\n'
     }
-    let options = { raise:false }
+    let options = { raise:false, as_any:false }
     let code = decompile(ast, types, 0, false, options)
     if(options.raise === true) {
         lib = 'let $raise = (msg) => { throw new Error(msg) }\n' + lib
+    }
+    if(options.as_any) {
+        lib = 'let $any = (t:any) => t as any\n' + lib
     }
     return lib + code
 }
@@ -1096,6 +1187,15 @@ let decompile = (ast, types, indent, ret, options) => {
     //     return 'let ' + ast.text + ' = ' + decom(ast.data[1], indent)
     // }
     if(ast.tag === 'defun') {
+        // if(ast.data[0].tag === 'type' && ast.data[0].text === 'do') {
+        //     let generic = ast.data[0].data[0].text
+        //     let id = ast.text
+        //     let f = ast.data[1].text
+        //     let args = ast.data[2].text
+        //     return 'export const ' + id + ' = <F extends (...args:Array<any>) => any>(' + f + ':F, ' + args + ':Parameters<F>):' + generic + '<ReturnType<F>> => ' +
+        //         decom(ast.data.at(-1), indent, true)
+        // }
+
         let typesc = ast.data.filter((a) => a.tag === 'type').length
         if(ast.data.length !== typesc * 2) {
             options.raise = true
@@ -1199,7 +1299,17 @@ let decompile = (ast, types, indent, ret, options) => {
 
     if(ast.tag === 'string') {
         return ast.text
-     }
+    }
+
+    if(ast.tag === 'multistr') {
+        let lines = ast.text.slice(3, -3).split('\n')
+        return "`" + lines.join('\n') + "`"
+    }
+
+
+    // if(ast.tag === 'do_array') {
+    //     return '[' + ast.data.map((a) => decom(a, indent) + ' as any').join(', ')  + ']' 
+    // }
 
     if(ast.tag === 'untyped_array') {
         return '[' + ast.data.map((a) => decom(a, indent)).join(', ')  + ']' 
@@ -1295,6 +1405,10 @@ let decompile = (ast, types, indent, ret, options) => {
             }
             return 'import(' + ast.data.slice(1).map((a) => decom(a, indent)).join(', ') + ' as any)'
         }
+        if(ast.data[0].tag === 'ref' && ast.data[0].text === 'any') {
+            options.as_any = true
+            return '$any(' + decom(ast.data[1], indent) + ')'
+        }
         if(ast.data.length > 1 && ast.data[1].tag === 'object') {
             let members = ast.data[1].data
             let v = []
@@ -1348,68 +1462,6 @@ let decompile = (ast, types, indent, ret, options) => {
     throw new Error('unknown ast tag \'' + ast.tag + '\'')
 }
 
-
-///////////////////////////////////////////////////////////////////////////////
-// Suites
-///////////////////////////////////////////////////////////////////////////////
-
-let get_indent = (line) => {
-    let count = 0
-    for(let i = 0; i < line.length; i++)  {
-        let c = line[i]
-        if(c === ' ' || c === '\t') count++
-        else break
-    }
-    return count
-}
-
-let get_indent_string = (line, current) => {
-    let indent = []
-    for(let i = 0; i < current; i++)  {
-        let c = line[i]
-        if(c === ' ' || c === '\t') indent.push(c)
-        else break
-    }
-    return indent.join('')
-}
-
-
-let paste_block = (s, current) => {
-    let lines = s.split('\n')
-    let indent = get_indent_string(lines[0], current)
-    lines.unshift('{{')
-    lines.pop()
-    lines.push(indent + '}}')
-    return lines.join('\n')
-}
-
-let indent = (current, lines, i) => {
-    let out = ''
-    for(; i < lines.length - 1; i++) {
-        let next = get_indent(lines[i])
-        if(current === next) {
-            out += lines[i] + '\n'
-            continue
-        }
-        if(current < next) {
-            let r = indent(next, lines, i)
-            out = out.substring(0, out.length - 1) + ' '
-            out += paste_block(r.out, current) + '\n'
-            i = r.i - 1
-        }
-        else {
-            break
-        }
-    }
-    return { out, i }
-} 
-
-let suite = (code) => {
-    code += '\n'
-    return indent(0, code.split('\n'), 0).out
-}
-
-
 ///////////////////////////////////////////////////////////////////////////////
 // API
 ///////////////////////////////////////////////////////////////////////////////
@@ -1425,28 +1477,27 @@ let error_at_line = (code, error) => {
     return line
 }
 
-let zekai_result = (suite, ast, out, error, line, column, msg) => ({
-                    suite, ast, out, error, line, column, msg
+let zekai_result = (ast, out, error, line, column, msg) => ({
+                    ast, out, error, line, column, msg
 })
 
 // let code_parser_error = 0
 // let code_okay = 1
 
 let api = {
-    suite,
-    ast: parser(),
+    ast: parser,
     decompile: decompile_main
 }
 
-export default (code) => {
-    let suite = api.suite(code)
-    let ast = api.ast(suite)
+export default (code, macros) => {
+    macros ??= (_) => (s, i) => fail(i, i, '')
+    let ast = api.ast(macros)(code)
     if(ast.length === -1) {
         let line = error_at_line(code, ast.error)
-        return zekai_result(suite, ast, '', true, line, 0, 'parser error at line ' + line)
+        return zekai_result(ast, '', true, line, 0, 'parser error at line ' + line)
     }
     let out = api.decompile(ast, true)
-    return zekai_result(suite, ast, out, false, -1, -1, '')
+    return zekai_result(ast, out, false, -1, -1, '')
 }
 
 

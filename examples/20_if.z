@@ -1,5 +1,5 @@
 
-# as you may noticed, indentation is important
+# as you may noticed, indentation is -optionally- important
 Point
     x num
     y num
@@ -9,6 +9,18 @@ f
     2
     3
 
+# if you don't like indentation you can use curly braces
+Foo {
+    x num
+    y num
+}
+
+q {
+    1
+    2
+    3
+}
+
 # the same goes for if and for statements
 bool void
 test b
@@ -17,11 +29,11 @@ test b
         n *= 20
         console.log(n)
     else
-        if Math.random() < 0.5 # no else
+        if Math.random() < 0.5 { # no else
             console.log('yay')
+        }
 
-# these are code blocks of identation, also called suites
-# besides that, they work like all imperative languages
+# they work like all imperative languages
 # including the return statment (also called ret in zekai)
 
 num num
