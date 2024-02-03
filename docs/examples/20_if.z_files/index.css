@@ -57,6 +57,7 @@ body {
 /* .cm-s-default .cm-let     {color:white; background:#444;} */
 
 /* .cm-s-default .cm-comma   {color:transparent;} */
+.cm-s-default .cm-multistr  {color: #ff9900;}
 
 .cm-s-default .cm-comma   {color:#FFF; opacity: 45%;}
 
