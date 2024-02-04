@@ -32,8 +32,13 @@ CodeMirror.defineSimpleMode('zekai', {
         { token: "keyword",             regex: /^[ ]+(async|await|import|ret|if|for|else|iif|new) /, sol:true },
         { token: ["normal", "let"],     regex: /^([ ]+)([a-z_][A-Za-z_\d]*) /, sol:true },
 
+        { token: "multistr", regex: /'''/, next: "multistr" },
+
         
+        { token: "string",  regex: /"(?:[^\\]|\\.)*?(?:"|$)/ },
         { token: "string",  regex: /'(?:[^\\]|\\.)*?(?:'|$)/ },
+
+
         { token: "number",  regex: /0x[a-f\d]+|[-+]?(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i, },
         { token: "keyword", regex: /(?:async|await|import|ret|if|for|else|iif|instanceof|new|break|continue)\b/ },
 
@@ -58,16 +63,20 @@ CodeMirror.defineSimpleMode('zekai', {
         { token: "std",     regex: /(?:range|clone)\b/ },
         { token: "par",     regex: /\(|\)/ },
         { token: "comment", regex: /\#.*/ },
-        { token: "type",    regex: /^[A-Z][A-Za-z$\d]+/ },
+        { token: "type",    regex: /^[A-Z][A-Za-z$_\d]+/ },
         { token: "type",    regex: /(?:bool|num|number|int|void|fun|str|string|array|union|extends|map|tuple)\b/ },
         { token: "generic", regex: /^[A-Z]/ },
         { token: "evil",    regex: /(?:null|undefined|any|typeof|let)\b/ },
-        { token: "banned",  regex: /[\;\?]/ },
-        { token: "comma",   regex: /[\,]/ },
+        { token: "banned",  regex: /[\?]/ },
+        { token: "comma",   regex: /[\,\;]/ },
         { token: "normal",  regex: /^[a-z$][\w$]*/ },
         { token: "dot",     regex: /\./ },
         { token: "tab",     regex: /^[ ]+$/, sol:true },
         { token: "excess",  regex: /^[ ]+$/ },
+    ],
+    multistr: [
+        {regex: /.*?'''/, token: "multistr", next: "start"},
+        {regex: /.*/, token: "multistr"}
     ],
     meta: {
         dontIndentStates: ["comment"],
