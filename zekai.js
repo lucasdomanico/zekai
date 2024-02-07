@@ -461,7 +461,7 @@ let parser = (macros) => {
         return new_ast('continue', '', [], ast.pos, ast.length, ast.error)
     })
 
-    let line = [Break, Continue, $(() => If), Return, $(() => For), typed_let, Let, $(() => assign_expr)]
+    let line = [Break, Continue, $(() => If), Return, $(() => match), $(() => ForPar), $(() => For), typed_let, Let, $(() => assign_expr)]
 
     let Else = R(all([token('else'), b, cases([$(() => block)].concat(line))]), (ast) => {
         // throw ast
@@ -491,6 +491,25 @@ let parser = (macros) => {
         ]
         return new_ast(ast.tag, ast.text, asts, ast.pos, ast.length, ast.error)
     })
+    let ForPar = R(all([token('for'), b, token('('), b, cases([Let, none]), b, cases([$(() => expr), none]), b, cases([$(() => assign_expr), none]), b, token(')'), b, cases([$(() => block)].concat(line))], 'for'), (ast) => {
+        let asts = [
+            ast.data[4].data[0], ast.data[6].data[0], ast.data[8].data[0], ast.data[12].data[0]
+        ]
+        return new_ast(ast.tag, ast.text, asts, ast.pos, ast.length, ast.error)
+    })
+
+
+    let match_case = R(all([w, many(all([tid, w])), w, token(':'), b, cases([$(() => block)].concat(line))]), (ast) => {
+        let tids = ast.data[1].data.map((a) => a.data[0])
+        ast.data = tids.concat([ast.data[5].data[0]])
+        return ast
+    })
+    let match = R(all([token('match'), w, $(() => expr), b, suite([match_case])], 'match'), (ast) => {
+        ast.data = [ast.data[2]].concat(ast.data[4].data)
+        return ast
+    })
+
+
 
 
     // let block  = R(all([token('{{'), w, many(all([cases(line), w])), w, token('}}')], 'block'), (ast) => {
@@ -1101,7 +1120,7 @@ let decompile_main = (ast, types) => {
     if(use_extends(ast)) {
         lib = $extends + '\n'
     }
-    let options = { raise:false, as_any:false }
+    let options = { raise:false, as_any:false, idgen:0 }
     let code = decompile(ast, types, 0, false, options)
     if(options.raise === true) {
         lib = 'let $raise = (msg) => { throw new Error(msg) }\n' + lib
@@ -1267,7 +1286,22 @@ let decompile = (ast, types, indent, ret, options) => {
             }).join(',\n') + '\n} from ' + ast.data[0].text + '\n'
     }
 
-
+    if(ast.tag === 'match') {
+        options.idgen += 1
+        let id = '$expr_' + options.idgen
+        let is_ref = ast.data[0].tag === 'ref'
+        // console.log(is_ref)
+        if(is_ref) id = ast.data[0].text
+        return (is_ref? '' : 'let ' + id + ' = ' + decom(ast.data[0], indent) + '\n') +
+            ast.data.slice(1).map((cas, i) => {
+                return (is_ref && i === 0? '' : '    '.repeat(indent)) + (i > 0? 'else ' : '') + 'if(' +
+                    cas.data.slice(0, -1).map((tid) => {
+                        return id + ' instanceof ' + tid.text
+                    }).join(' || ') +
+                        ') ' + decom(cas.data.at(-1), indent)
+            }).join('\n') + '\n' +
+            '    '.repeat(indent) + 'else throw(' + id + ')'
+    }
 
 
     // if(ast.tag === 'block') {
@@ -1285,6 +1319,7 @@ let decompile = (ast, types, indent, ret, options) => {
             if(ast.data.at(-1).tag === 'return') $ret = ''
             if(ast.data.at(-1).tag === 'if')     $ret = ''
             if(ast.data.at(-1).tag === 'for')    $ret = ''
+            if(ast.data.at(-1).tag === 'match')  $ret = ''
         } 
         return '{\n' + ast.data.map((a, i) => {
             return '    '.repeat(indent + 1) + (i === ast.data.length - 1? $ret : '') + decom(a, indent + 1)
