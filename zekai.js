@@ -461,9 +461,9 @@ let parser = (macros) => {
         return new_ast('continue', '', [], ast.pos, ast.length, ast.error)
     })
 
-    let line = [Break, Continue, $(() => If), Return, $(() => match), $(() => ForPar), $(() => For), typed_let, Let, $(() => assign_expr)]
+    let line = [Break, Continue, $(() => If), $(() => Else), Return, $(() => match), $(() => ForPar), $(() => For), typed_let, Let, $(() => assign_expr)]
 
-    let Else = R(all([token('else'), b, cases([$(() => block)].concat(line))]), (ast) => {
+    let Else = R(all([token('else'), b, cases([$(() => block)].concat(line))], 'else'), (ast) => {
         // throw ast
         return new_ast(ast.tag, ast.text, [ast.data[2].data[0]], ast.pos, ast.length, ast.error)
     })
@@ -473,13 +473,13 @@ let parser = (macros) => {
     //     let els = ast.data[10].data[0].tag === 'none'? [] : [ast.data[10].data[0].data[0]]
     //     return new_ast(ast.tag, ast.text, [cond, body].concat(els), ast.pos, ast.length, ast.error)
     // })
-    let If = R(all([token('if'), w, $(() => expr), b, cases([$(() => block)].concat(line)), cases([all([w, Else]), none])], 'if'), (ast) => {
+    let If = R(all([token('if'), w, $(() => expr), b, cases([$(() => block)].concat(line))], 'if'), (ast) => {
         let cond = ast.data[2]
         let body = ast.data[4].data[0]
-        let els = ast.data[5].data[0].tag === 'none'? [] : [ast.data[5].data[0].data[1].data[0]]
+        // let els = ast.data[5].data[0].tag === 'none'? [] : [ast.data[5].data[0].data[1].data[0]]
         // console.error(ast.data[5].data[0].data[1].data[0])
         // let els = []
-        return new_ast(ast.tag, ast.text, [cond, body].concat(els), ast.pos, ast.length, ast.error)
+        return new_ast(ast.tag, ast.text, [cond, body], ast.pos, ast.length, ast.error)
     })
 
 
@@ -883,8 +883,6 @@ let parser = (macros) => {
     /////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////
 
-
-
     return (code) => {
         let ast = script(code, 0)
         if(isfail(ast)) return ast
@@ -1115,12 +1113,12 @@ let use_extends = (ast) => {
     return false
 }
 
-let decompile_main = (ast, types) => {
+let decompile_main = (ast, types, obfus) => {
     let lib = ''
     if(use_extends(ast)) {
         lib = $extends + '\n'
     }
-    let options = { raise:false, as_any:false, idgen:0 }
+    let options = { raise:false, as_any:false, idgen:0, obfus, obfusmap:create_obfusmap(ast) }
     let code = decompile(ast, types, 0, false, options)
     if(options.raise === true) {
         lib = 'let $raise = (msg) => { throw new Error(msg) }\n' + lib
@@ -1131,10 +1129,34 @@ let decompile_main = (ast, types) => {
     return lib + code
 }
 
+let create_obfusmap = (ast) => {
+    let map = new Map()
+    ast.data.forEach((a) => {
+        let id = a.text.split(' ')[0]
+        map.set(id, id)
+    })
+    return map
+}
 
 let decompile = (ast, types, indent, ret, options) => {
 
     let decom = ($ast, $indent, $ret) => decompile($ast, types, $indent, $ret, options)
+
+    let obfus = (id) => {
+        if(!options.obfus) return id
+        if(!options.obfusmap.has(id)) {
+            let hash = '$_' + options.obfusmap.size
+            options.obfusmap.set(id, hash)
+        }
+        return options.obfusmap.get(id)
+    }
+    let obfus_get = (id) => {
+        if(!options.obfus) return id
+        if(!options.obfusmap.has(id)) {
+            options.obfusmap.set(id, id)
+        }
+        return options.obfusmap.get(id)
+    }
 
     if(ast.tag === 'script') {
         return ast.data.map((a) => {
@@ -1236,7 +1258,7 @@ let decompile = (ast, types, indent, ret, options) => {
             let id = argc
             let tid = 0
             for(let i = 0; i < argc - 1; i++) {
-                let id_str = ast.data[id].text
+                let id_str = obfus(ast.data[id].text)
                 let tid_str = detype(ast.data[tid])
                 v.push(id_str + ':' + tid_str)
                 id++
@@ -1252,7 +1274,7 @@ let decompile = (ast, types, indent, ret, options) => {
         }
         return type + 'export const ' + ast_text + desc + ' = ' + Async + generics_text + '(' +
             ast.data.slice(argc, argc * 2 - 1).map((a, i) => {
-                return a.text + (generics_text? ':' + detype(ast.data[i]) : '')
+                return obfus(a.text) + (generics_text? ':' + detype(ast.data[i]) : '')
             }).join(', ') + ') => ' +
             decom(ast.data.at(-1), indent, true) + '\n'
     }
@@ -1318,6 +1340,7 @@ let decompile = (ast, types, indent, ret, options) => {
         if(ast.data.length > 0) {
             if(ast.data.at(-1).tag === 'return') $ret = ''
             if(ast.data.at(-1).tag === 'if')     $ret = ''
+            if(ast.data.at(-1).tag === 'else')   $ret = ''
             if(ast.data.at(-1).tag === 'for')    $ret = ''
             if(ast.data.at(-1).tag === 'match')  $ret = ''
         } 
@@ -1375,10 +1398,10 @@ let decompile = (ast, types, indent, ret, options) => {
     }
 
     if(ast.tag === 'let') {
-        return 'let ' + ast.text + ' = ' + decom(ast.data[0], indent)
+        return 'let ' + obfus(ast.text) + ' = ' + decom(ast.data[0], indent)
     }
     if(ast.tag === 'typed_let') {
-        return 'let ' + ast.text + ':' + detype(ast.data[0]) + ' = ' + decom(ast.data[1], indent)
+        return 'let ' + obfus(ast.text) + ':' + detype(ast.data[0]) + ' = ' + decom(ast.data[1], indent)
     }
 
     if(ast.tag === 'func') {
@@ -1386,7 +1409,7 @@ let decompile = (ast, types, indent, ret, options) => {
         return Async + '(' + ast.data.filter((a) => {
             return a.tag === 'id'
         // }).map((a) => a.text + ':any').join(', ') + ') => ' + decom(ast.data.at(-1), indent, true)
-        }).map((a) => a.text).join(', ') + ') => ' + decom(ast.data.at(-1), indent, true)
+        }).map((a) => obfus(a.text)).join(', ') + ') => ' + decom(ast.data.at(-1), indent, true)
     }
 
     if(ast.tag === 'par') {
@@ -1416,7 +1439,7 @@ let decompile = (ast, types, indent, ret, options) => {
     }
 
     if(ast.tag === 'ref') {
-        return ast.text
+        return obfus_get(ast.text)
     }
 
     if(ast.tag === 'index') {
@@ -1489,9 +1512,12 @@ let decompile = (ast, types, indent, ret, options) => {
     }
 
     if(ast.tag === 'if') {
-        return 'if(' + decom(ast.data[0], indent) + ') ' + decom(ast.data[1], indent) +
-           (ast.data.length === 3? '\n' +
-           '    '.repeat(indent) + 'else ' + decom(ast.data[2], indent) : '')
+        return 'if(' + decom(ast.data[0], indent) + ') ' + decom(ast.data[1], indent)
+        //    (ast.data.length === 3? '\n' +
+        //    '    '.repeat(indent) + 'else ' + decom(ast.data[2], indent) : '')
+    }
+    if(ast.tag === 'else') {
+        return 'else ' + decom(ast.data[0], indent)
     }
 
     throw new Error('unknown ast tag \'' + ast.tag + '\'')
@@ -1524,14 +1550,15 @@ let api = {
     decompile: decompile_main
 }
 
-export default (code, macros) => {
+export default (code, macros, obfus) => {
     macros ??= (_) => (s, i) => fail(i, i, '')
+    obfus ??= false
     let ast = api.ast(macros)(code)
     if(ast.length === -1) {
         let line = error_at_line(code, ast.error)
         return zekai_result(ast, '', true, line, 0, 'parser error at line ' + line)
     }
-    let out = api.decompile(ast, true)
+    let out = api.decompile(ast, true, obfus)
     return zekai_result(ast, out, false, -1, -1, '')
 }
 
